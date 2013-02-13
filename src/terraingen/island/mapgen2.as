@@ -4,6 +4,7 @@
 
 package terraingen.island  {
   import alternsector.utils.mapping.MarchingSquaresPackage;
+   import flash.filters.BlurFilter;
    import terraingen.island.graph.*;
   import flash.Boot;
   import flash.ui.Keyboard;
@@ -19,8 +20,8 @@ package terraingen.island  {
   import flash.system.System;
   import de.polygonal.math.PM_PRNG;
 
-  [SWF(width="800", height="600", frameRate=60)]
-  public class mapgen2 extends MovieClip {
+  
+  public class mapgen2 extends Sprite {
     static public var SIZE:int = 512;
     static public var EXPORT_SIZE:int = 512;
 	
@@ -106,6 +107,12 @@ package terraingen.island  {
       GRADIENT_LOW: 0x000001,
       GRADIENT_HIGH: 0xffffff
     };
+	
+	static public var lightGradientColors:Object = {
+      OCEAN: 0x000000,
+      GRADIENT_LOW: 0x000001,
+      GRADIENT_HIGH: 0xffffff
+    };
 
     static public var moistureGradientColors:Object = {
       OCEAN: 0x4466ff,
@@ -143,12 +150,19 @@ package terraingen.island  {
     public var watersheds:Watersheds;
     public var noisyEdges:NoisyEdges;
 
-
+	[SWF(width="800", height="600", frameRate=60)]
     public function mapgen2() {
-		MarchingSquaresPackage;
-		haxe.init(this);
+	
+
+    addEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
+    }
+	
+	private function onAddedToStage(e:Event):void 
+	{
+		removeEventListener(Event.ADDED_TO_STAGE, onAddedToStage);
 		
-      stage.scaleMode = 'noScale';
+		
+		  stage.scaleMode = 'noScale';
       stage.align = 'TL';
 	  
 	  scaleX = SIZE > 512 ? .5 : 1;
@@ -166,7 +180,7 @@ package terraingen.island  {
       addGenerateButtons();
       addMiscLabels();
 	  
-	  Map.NUM_POINTS  = 4000;
+	  
 
       map = new Map(SIZE);
       go(islandType);
@@ -205,7 +219,7 @@ package terraingen.island  {
       }
       islandType = type;
       map.newIsland(type, seed, variant);
-    }
+	}
 
     
     public function graphicsReset():void {
@@ -507,7 +521,7 @@ package terraingen.island  {
         renderPolygons(graphics, displayColors, null, null);
       } else if (mode == 'slopes') {
 		    noiseLayer.visible = false;
-        renderPolygons(graphics, displayColors, null, colorWithSlope);
+        renderPolygons(graphics, {} , null, colorWithSlope, 0x808080);
       } else if (mode == 'smooth') {
         renderPolygons(graphics, displayColors, null, colorWithSmoothColors);
       } else if (mode == 'elevation') {
@@ -618,21 +632,21 @@ package terraingen.island  {
 
     
     // Render the interior of polygons
-    public function renderPolygons(graphics:Graphics, colors:Object, gradientFillProperty:String, colorOverrideFunction:Function):void {
+    public function renderPolygons(graphics:Graphics, colors:Object, gradientFillProperty:String, colorOverrideFunction:Function, defaultColor:uint=0):void {
       var p:Center, r:Center;
 
       // My Voronoi polygon rendering doesn't handle the boundary
       // polygons, so I just fill everything with ocean first.
-      graphics.beginFill(colors.OCEAN);
+      graphics.beginFill(defaultColor != 0 ? defaultColor : colors.OCEAN);
       graphics.drawRect(0, 0, SIZE, SIZE);
       graphics.endFill();
       
       for each (p in map.centers) {
           for each (r in p.neighbors) {
               var edge:Edge = map.lookupEdgeFromCenter(p, r);
-              var color:int = colors[p.biome] || 0;
+              var color:int = colors[p.biome] || defaultColor;
               if (colorOverrideFunction != null) {
-                color = colorOverrideFunction(color, p, r, edge);
+                color = colorOverrideFunction(color, p, r, edge, colors, defaultColor);
               }
 
               function drawPath0():void {
@@ -927,7 +941,7 @@ package terraingen.island  {
       return light;
     }
     
-    public function colorWithSlope(color:int, p:Center, q:Center, edge:Edge):int {
+    public function colorWithSlope(color:int, p:Center, q:Center, edge:Edge, displayColors:Object, defaultColor:uint):int {
       var r:Corner = edge.v0;
       var s:Corner = edge.v1;
       if (!r || !s) {
@@ -937,7 +951,7 @@ package terraingen.island  {
         return color;
       }
 
-      if (q != null && p.water == q.water) color = interpolateColor(color, displayColors[q.biome], 0.4);
+      if (q != null && p.water == q.water) color = interpolateColor(color, displayColors[q.biome]!= null ? displayColors[q.biome] : defaultColor, 0.4);
       var colorLow:int = interpolateColor(color, 0x333333, 0.7);
       var colorHigh:int = interpolateColor(color, 0xffffff, 0.3);
       var light:Number = calculateLighting(p, r, s);
@@ -946,9 +960,9 @@ package terraingen.island  {
     }
 
 
-    public function colorWithSmoothColors(color:int, p:Center, q:Center, edge:Edge):int {
+    public function colorWithSmoothColors(color:int, p:Center, q:Center, edge:Edge, displayColors:Object, defaultColor:uint):int {
       if (q != null && p.water == q.water) {
-        color = interpolateColor(displayColors[p.biome], displayColors[q.biome], 0.25);
+        color = interpolateColor(displayColors[p.biome], displayColors[q.biome]!= null ? displayColors[q.biome] : defaultColor, 0.25);
       }
       return color;
     }
@@ -1000,7 +1014,7 @@ package terraingen.island  {
     // This function draws to a bitmap and copies that data into the
     // three export byte arrays.  The layer parameter should be one of
     // 'elevation', 'moisture', 'overrides'.
-    public function makeExport(layer:String, exportSize:int = 0):ByteArray {
+    public function makeExport(layer:String, exportSize:int = 0, compress:Boolean=true):ByteArray {
 		exportSize = exportSize != 0 ? exportSize : EXPORT_SIZE;
       var exportBitmap:BitmapData = new BitmapData(exportSize, exportSize);
       var exportGraphics:Shape = new Shape();
@@ -1052,18 +1066,34 @@ package terraingen.island  {
         exportBitmap.draw(exportGraphics, m);
         saveBitmapToArray();
       }
-	  else if (layer == 'biomes') {
+	  else if (layer == 'biometiles') {
 		  renderPolygons(exportGraphics.graphics, exportDisplayColors, null, null);
 		  stage.quality = 'low';
         exportBitmap.draw(exportGraphics, m);
         stage.quality = 'best';
-		
-		 
+ 
 			saveBitmapToArray();
 	
 	  }
+	  else if (layer === 'biomediffuse') {
+		    renderPolygons(exportGraphics.graphics, displayColors, null, colorWithSmoothColors);
+			exportBitmap.draw(exportGraphics, m);
+			
+			//	exportBitmap.applyFilter( exportBitmap, exportBitmap.rect, new Point(), new BlurFilter(4, 4, 4) );
+				exportBitmap.draw(noiseLayer, null, noiseLayer.transform.colorTransform, noiseLayer.blendMode, null, false);
+				//exportBitmap.applyFilter( exportBitmap, exportBitmap.rect, new Point(), new BlurFilter(1, 1, 4) );
+				addChild( new Bitmap(exportBitmap));
+			saveBitmapToArray();
+	  }
+	  else if (layer === 'slopes') {
+		 renderPolygons(exportGraphics.graphics, {}, null, colorWithSlope, 0x808080);
+        exportBitmap.draw(exportGraphics, m);
+		exportBitmap.applyFilter( exportBitmap, exportBitmap.rect, new Point(), new BlurFilter(4, 4, 4) );
+		addChild( new Bitmap(exportBitmap));
+		 saveBitmapToArray();
+	  }
 		  
-	  exportData.compress();
+	 if (compress) exportData.compress();
       return exportData;
     }
 
@@ -1296,12 +1326,12 @@ package terraingen.island  {
 
                
     public function addExportButtons():void {
-      var y:Number = 450;
+      var y:Number = 420;
       controls.addChild(makeButton("Export Bitmaps:", 25, y, 150, null));
                
       controls.addChild(makeButton("Elevation", 50, y+22, 100,
                           function (e:Event):void {
-                            new FileReference().save(makeExport('elevation'), 'elevation.data');
+                            new FileReference().save(makeExport('elevation'), 'map_elevation.data');
                           }));
       controls.addChild(makeButton("Moisture", 50, y+44, 100,
                           function (e:Event):void {
@@ -1311,19 +1341,30 @@ package terraingen.island  {
                           function (e:Event):void {
                             new FileReference().save(makeExport('overrides'), 'overrides.data');
                           }));
-	      controls.addChild(makeButton("Biomes Raw", 50, y+88, 100,
+	      controls.addChild(makeButton("Biome Diffuse", 50, y+88, 100,
                           function (e:Event):void {
-                            new FileReference().save(makeExport('biomes'), 'biomes.data');
+                            new FileReference().save(makeExport('biomediffuse'), 'map_biomediffuse.data');
                           }));
-			controls.addChild(makeButton("Biomes Image", 50, y+88+22, 100,
+			controls.addChild(makeButton("Biome Tiles", 50, y+88+22, 100,
                           function (e:Event):void {
-                          createBiomeApplication( makeExport('biomes') );
+                          createBiomeApplication( makeExport('biometiles') );
+                          }));
+			controls.addChild(makeButton("2D Slope (lighting)", 50, y+88+22, 100,
+                          function (e:Event):void {
+                          new FileReference().save( makeExport('slopes'), 'map_slopelighting.data' );
                           }));
 
+						 /*
       controls.addChild(makeButton("Export XML", 25, y+88+44, 150,
                           function (e:Event):void {
                             new FileReference().save(exportPolygons(), 'map.xml');
                           }));
+						  */
+						  
+			 controls.addChild(makeButton("Export ISL", 50, y+88+44, 100,
+                   function (e:Event):void {
+                      //new FileReference().save(exportPolygons(), 'map.isl');
+             }));
     }
 	
 	private function createBiomeApplication(bytes:ByteArray):void 

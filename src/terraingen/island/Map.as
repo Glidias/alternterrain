@@ -13,7 +13,7 @@ package terraingen.island {
   import de.polygonal.math.PM_PRNG;
 
   public class Map {
-    static public var NUM_POINTS:int = 30;
+    static public var NUM_POINTS:int = 1000;
     static public var LAKE_THRESHOLD:Number = 0.3;  // 0 to 1, fraction of water corners for water polygon
     static public var NUM_LLOYD_ITERATIONS:int = 2;
 
