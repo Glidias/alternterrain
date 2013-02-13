@@ -7,7 +7,7 @@ package alternterrain.resources
 	import flash.utils.IExternalizable;
 
 	/**
-	 * ...
+	 * This is the class to hold the .tres format for syncronous loading/initilization of multiple quad-tree pages.
 	 * @author Glenn Ko
 	 */
 	public class InstalledQuadTreePages implements IExternalizable
