@@ -18,6 +18,7 @@ package terraingen.island
 	import jp.progression.commands.Func;
 	import jp.progression.commands.lists.LoaderList;
 	import jp.progression.commands.lists.SerialList;
+	import jp.progression.commands.Wait;
 	/**
 	 * Applies biomes for tile index material, by tracing out edges and blending them accordingly with the correct bit arrangement.
 	 * @author Glenn Ko
@@ -147,16 +148,32 @@ package terraingen.island
 			_serialList = new SerialList();
 			
 			var len:uint = textureList.length / 2;
-			for (var i:uint = 1; i < len; i++) {
-				//textureList[i * 2];
 			
-				extractedShapes = BitmapShapeExtractor.extractShapes2(tileMap, 0xFF000000 | (i+1));
+			_currentLayerIndex = 1;
+			
+			for (var i:uint = 1; i < len; i++) {
+				_serialList.addCommand( new Func(runLayerProcess) );
+				_serialList.addCommand( new Wait(.6) );
+				_serialList.addCommand( new Func(completedLayer) );
+				_serialList.addCommand( new Wait(.8) );
+			}
+			
+			_serialList.addCommand( new Func(notifyComplete) );
+			
+			_serialList.execute();
+		}
+		
+		private var _currentLayerIndex:int;
+		
+		public function runLayerProcess():void {
+		
+			extractedShapes = BitmapShapeExtractor.extractShapes2(tileMap, 0xFF000000 | (_currentLayerIndex+1));
 				var positiveShapes:Vector.<BitmapData> = extractedShapes.shapes;
 				var negativeShapes:Vector.<BitmapData> = extractedShapes.negative_shapes;
 				var shape:BitmapData;
 				var pt:Point;
 		
-				_serialList.addCommand( new Func(setCallbackState, [true] ) );
+				_serialList.insertCommand( new Func(setCallbackState, [true] ) );
 				var haveShape:Boolean = false;
 				
 				for each(shape in positiveShapes) {  // reverse logic here sorry
@@ -172,11 +189,11 @@ package terraingen.island
 					}
 					
 					scanlineCheck(shape, pt.y);
-					_serialList.addCommand( new Func(runMarchingSquares, [shape, 0, pt.y, 0, i], marchSquareUtil, Event.COMPLETE ) );
+					_serialList.insertCommand( new Func(runMarchingSquares, [shape, 0, pt.y, 0, _currentLayerIndex], marchSquareUtil, Event.COMPLETE ) );
 					haveShape = true;
 				}
 				
-				_serialList.addCommand( new Func(setCallbackState, [false] ) );
+				_serialList.insertCommand( new Func(setCallbackState, [false] ) );
 				for each(shape in negativeShapes) {
 					// marching squares and apply callback
 					pt = BitmapDataUtil.getPointNotMatchingColor(shape, 0);
@@ -186,17 +203,24 @@ package terraingen.island
 					}
 					if (pt.x == 0 || pt.y == 0) continue;
 					scanlineCheck(shape, pt.y);
-					_serialList.addCommand( new Func(runMarchingSquares, [shape, 0, pt.y, 0, i], marchSquareUtil, Event.COMPLETE ) );
+					_serialList.insertCommand( new Func(runMarchingSquares, [shape, 0, pt.y, 0, _currentLayerIndex], marchSquareUtil, Event.COMPLETE ) );
 				}
 				
 				if (haveShape) biomeCount++;
+				
+				
+				
+				
+				_currentLayerIndex++;
 			
-			}
-			
-			_serialList.addCommand( new Func(notifyComplete) );
-			
-			_serialList.execute();
 		}
+		
+		private function completedLayer():void 
+		{
+			extractedShapes.dispose();
+		}
+		
+		
 		
 		private function scanlineCheck(shape:BitmapData, y:int, colorDisc:uint = 0):Boolean {
 			
@@ -220,6 +244,7 @@ package terraingen.island
 			if (!marchSquareUtil.runMarchingSquares(shape, ptX, ptY, color)) {
 				throw new Error("MARCH START FAILED!");
 			}
+			
 			_serialColorIndex = colorIndex;
 			_serialAtlasIndex = textureList[colorIndex * 2][0];
 		}
@@ -260,6 +285,7 @@ package terraingen.island
 			
 			painter.paintToTileMap(tileBitMap, tilesAcross, _serialAtlasIndex, marchingSquares.x, marchingSquares.y);
 			testbitMap.setPixel32(marchingSquares.x, marchingSquares.y, 0xFFFFFF40);
+		
 		
 		}
 		private function callbackNegativeOutline():void {

@@ -1,9 +1,11 @@
-package alternterrain.resources 
+package atregen.util 
 {
 	import alternterrain.core.HeightMapInfo;
 	import alternterrain.core.QuadCornerData;
 	import alternterrain.core.QuadSquareChunk;
 	import alternterrain.core.QuadTreePage;
+	import alternterrain.resources.InstalledQuadTreePages;
+	import alternterrain.resources.LoadAliases;
 	import flash.events.Event;
 	import flash.events.EventDispatcher;
 	import flash.net.FileReference;
@@ -197,6 +199,9 @@ package alternterrain.resources
 		
 		private function done():void {
 			dispatchEvent( new Event(Event.COMPLETE) );
+	
+			// TODO:
+			/*
 			var installedPages:InstalledQuadTreePages = new InstalledQuadTreePages();
 			installedPages.pageGrid = pageGrid;
 			installedPages.heightMap = _heightMap;
@@ -204,9 +209,9 @@ package alternterrain.resources
 			var bArray:ByteArray = new ByteArray();
 			installedPages.writeExternal(bArray);
 			bArray.compress();
+			*/
 			
-			
-			new FileReference().save(bArray, filename);
+			//new FileReference().save(bArray, filename);
 			
 			_serialList = null;
 			_heightMap = null;

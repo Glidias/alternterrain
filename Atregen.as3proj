@@ -59,6 +59,7 @@
     <element path="lib\v8\Alternativa3D.swc" />
     <element path="lib\Stats.swc" />
     <element path="lib\Alternativa3D.swc" />
+    <element path="lib\as3corelib.swc" />
   </libraryPaths>
   <!-- External Libraries -->
   <externalLibraryPaths>

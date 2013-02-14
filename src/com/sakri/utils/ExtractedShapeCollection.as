@@ -33,12 +33,21 @@ package com.sakri.utils{
 		
 		public function dispose():void 
 		{
-			for each(var shape:BitmapData in _shapes) {
-				shape.dispose();
+			var i:int;
+			
+			
+			
+			i = _shapes ? _shapes.length : 0;
+			while (--i > -1) {
+				_shapes[i].dispose();
 			}
-						for each(shape in _negative_shapes) {
-				shape.dispose();
+		
+				i = _negative_shapes ? _negative_shapes.length : 0;
+			while (--i > -1) {
+				_negative_shapes[i].dispose();
 			}
+			_shapes = null;
+			_negative_shapes = null;
 		}
 
 	}

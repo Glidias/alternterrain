@@ -1349,7 +1349,7 @@ package terraingen.island  {
                           function (e:Event):void {
                           createBiomeApplication( makeExport('biometiles') );
                           }));
-			controls.addChild(makeButton("2D Slope (lighting)", 50, y+88+22, 100,
+			controls.addChild(makeButton("2D Slope (lighting)", 50, y+88+44, 100,
                           function (e:Event):void {
                           new FileReference().save( makeExport('slopes'), 'map_slopelighting.data' );
                           }));
@@ -1387,7 +1387,7 @@ package terraingen.island  {
 		var data:ByteArray = new ByteArray();
 		biomeApplicator.painter.writeBmpData(data, biomeApplicator.tileBitMap, biomeApplicator.tilesAcross);
 		data.compress();
-		new FileReference().save(data, "biomesimage.data");
+		new FileReference().save(data, "map_biometiles.data");
 		
 		
 		data.uncompress();

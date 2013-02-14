@@ -1,6 +1,6 @@
-package com.sakri.utils{
+package com.sakri.utils {
 	
-	//import flash.display.BitmapData;
+	//import BitmapData;
 	import flash.display.BitmapData;
 	import __AS3__.vec.Vector;
 	
@@ -8,9 +8,9 @@ package com.sakri.utils{
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	
-	public class BitmapDataUtil{
+	public class BitmapDataUtil {
 		
-		//import flash.display.BitmapData;
+		//import BitmapData;
 		
 		public static function getPointsMatchingColor(bmd:BitmapData,color:uint):Vector.<Point>{
 			var points:Vector.<Point>=new Vector.<Point>();
@@ -38,7 +38,7 @@ package com.sakri.utils{
 		
 		
 		
-		public static function getPointsMatchingColor32(bmd:flash.display.BitmapData,color:uint):Vector.<Point>{
+		public static function getPointsMatchingColor32(bmd:BitmapData,color:uint):Vector.<Point>{
 			var points:Vector.<Point>=new Vector.<Point>();
 			for(var i:uint=0;i<bmd.height;i++){
 				for(var j:uint=0;j<bmd.width;j++){
@@ -50,7 +50,7 @@ package com.sakri.utils{
 			return points;
 		}
 
-		public static function getNonTransparentPoints(bmd:flash.display.BitmapData,grab_every:uint=2,resize_percent:Number=1,offset:Point=null):Vector.<Point>{
+		public static function getNonTransparentPoints(bmd:BitmapData,grab_every:uint=2,resize_percent:Number=1,offset:Point=null):Vector.<Point>{
 			if(offset==null)offset=new Point(0,0);
 			var points:Vector.<Point>=new Vector.<Point>();
 			for(var i:uint=0;i<bmd.height;i+=grab_every){
@@ -67,32 +67,32 @@ package com.sakri.utils{
 		/**
 		 * Replaces all pixels with a transparency greater than 'alpha_threshold' with color, rest with transparency
 		 */
-		public static function toMonoChrome(source:flash.display.BitmapData,mono_color:uint=0xFF000000):flash.display.BitmapData{
-			var bmd:flash.display.BitmapData=source.clone();
+		public static function toMonoChrome(source:BitmapData,mono_color:uint=0xFF000000):BitmapData{
+			var bmd:BitmapData=source.clone();
 			bmd.threshold(bmd,bmd.rect,new Point(),">",0x00000000,mono_color);
 			return bmd;
 		}
 		
-		public static function containsTransparentPixels(bmd:flash.display.BitmapData):Boolean{
+		public static function containsTransparentPixels(bmd:BitmapData):Boolean{
 			if(!bmd.transparent)return false;
-			var test:flash.display.BitmapData=bmd.clone();
+			var test:BitmapData=bmd.clone();
 			return  test.threshold(bmd,bmd.rect,new Point(),"<",0x01,0xFF000000) > 0 ? true : false ; 
 		}
 		
-		public static function containsSolidPixels(bmd:flash.display.BitmapData):Boolean{
+		public static function containsSolidPixels(bmd:BitmapData):Boolean{
 			var rect:Rectangle=bmd.getColorBoundsRect(0xFF000000,0,false);
 			return !rect.equals(new Rectangle());
 		}
 			
 		// FUNCTIONS FOR STRIPPING TRANSPARENT PIXELS FROM SIDES OF BITMAPDATA
-		public static function stripTransparentEdges(bm:flash.display.BitmapData):flash.display.BitmapData{
+		public static function stripTransparentEdges(bm:BitmapData):BitmapData{
 			bm=stripTransparentEdgeFromTop(bm);
 			bm=stripTransparentEdgeFromBottom(bm);
 			bm=stripTransparentEdgeFromRight(bm);
 			return stripTransparentEdgeFromLeft(bm);		
 		}
 		
-		public static function stripTransparentEdgeFromTop(bm:flash.display.BitmapData):flash.display.BitmapData{
+		public static function stripTransparentEdgeFromTop(bm:BitmapData):BitmapData{
 			var i:uint,j:uint,first_colored:uint=0;
 			outer:for(i=0;i<bm.height;i++){
 				for(j=0;j<bm.width;j++){
@@ -104,13 +104,13 @@ package com.sakri.utils{
 			}
 			//trace("\nstef_top1, height:"+bm.height+",fc:"+first_colored);
 			if(first_colored==0)return bm;
-			var stripped:flash.display.BitmapData=new flash.display.BitmapData(bm.width,bm.height-first_colored,true,0x00000000);
+			var stripped:BitmapData=new BitmapData(bm.width,bm.height-first_colored,true,0x00000000);
 			stripped.draw(bm,new Matrix(1,0,0,1,0,-first_colored));
 			//trace("stef_top2, height:"+stripped.height);
 			return stripped;
 		}
 
-		public static function stripTransparentEdgeFromBottom(bm:flash.display.BitmapData):flash.display.BitmapData{
+		public static function stripTransparentEdgeFromBottom(bm:BitmapData):BitmapData{
 			var i:int,j:uint,first_colored:uint=bm.height;
 			//trace("\n**stef_bottom: bm.height:"+bm.height);
 			outer:for(i=bm.height;i>-1;i--){
@@ -123,14 +123,14 @@ package com.sakri.utils{
 			}
 			//trace("stef_botttom1, height:"+bm.height+",fc:"+first_colored);
 			if(first_colored==bm.height)return bm;
-			var stripped:flash.display.BitmapData=new flash.display.BitmapData(bm.width,first_colored,true,0x00000000);
+			var stripped:BitmapData=new BitmapData(bm.width,first_colored,true,0x00000000);
 			stripped.draw(bm);
 			//trace("stef_botttom2, height:"+stripped.height);
 			return stripped;
 		}
 		
 		//TO BE IMPLEMENTED!!!!		(seems done, not checked or tested)
-		public static function stripTransparentEdgeFromLeft(bm:flash.display.BitmapData):flash.display.BitmapData{
+		public static function stripTransparentEdgeFromLeft(bm:BitmapData):BitmapData{
 			var i:uint,j:uint,first_colored:uint=0;
 			outer:for(i=0;i<bm.width;i++){
 				for(j=0;j<bm.height;j++){
@@ -142,14 +142,14 @@ package com.sakri.utils{
 			}
 			//trace("\nstef_left1, width:"+bm.width+",fc:"+first_colored);
 			if(first_colored==0)return bm;
-			var stripped:flash.display.BitmapData=new flash.display.BitmapData(bm.width-first_colored,bm.height,true,0x00000000);
+			var stripped:BitmapData=new BitmapData(bm.width-first_colored,bm.height,true,0x00000000);
 			stripped.draw(bm,new Matrix(1,0,0,1,-first_colored,0));
 			//trace("stef_left2, width:"+stripped.width);
 			return stripped;
 		}
 
 		//TO BE IMPLEMENTED!!!!		(seems done, not checked or tested)
-		public static function stripTransparentEdgeFromRight(bm:flash.display.BitmapData):flash.display.BitmapData{
+		public static function stripTransparentEdgeFromRight(bm:BitmapData):BitmapData{
 			var i:int,j:uint,first_colored:uint=bm.width;
 			outer:for(i=bm.width;i>-1;i--){
 				for(j=0;j<bm.height;j++){
@@ -161,7 +161,7 @@ package com.sakri.utils{
 			}
 			//trace("\nstef_right1, width:"+bm.width+",fc:"+first_colored);
 			if(first_colored==bm.width)return bm;
-			var stripped:flash.display.BitmapData=new flash.display.BitmapData(first_colored,bm.height,true,0x00000000);
+			var stripped:BitmapData=new BitmapData(first_colored,bm.height,true,0x00000000);
 			stripped.draw(bm);
 			//trace("stef_right2, width:"+stripped.width);
 			return stripped;
@@ -193,7 +193,7 @@ package com.sakri.utils{
 			return null;
 		}
 		
-		public static function getFirstNonTransparentPixelLooping(bmd:flash.display.BitmapData):Point{
+		public static function getFirstNonTransparentPixelLooping(bmd:BitmapData):Point{
 			var ix:uint,iy:uint,bmd_height:uint=bmd.height,bmd_width:uint=bmd.width;
 			for (iy=0;iy<bmd_height;iy++){
 				for(ix=0;ix<bmd_width;ix++){
@@ -205,7 +205,7 @@ package com.sakri.utils{
 			return null;
 		}
 		
-		public static function getFirstNonTransparentPixelFloodFill(bmd:flash.display.BitmapData,test_fill_color:uint=0xFFFFFF00):Point{
+		public static function getFirstNonTransparentPixelFloodFill(bmd:BitmapData,test_fill_color:uint=0xFFFFFF00):Point{
 			//var hit_bmd:BitmapData=new BitmapData(bmd.width,1,true,0);
 			var hit_bmd:BitmapData;
 			var m:Matrix=new Matrix();
@@ -224,7 +224,7 @@ package com.sakri.utils{
 			return null;
 		}
 
-		public static function getFirstNonTransparentPixelHitTest(bmd:flash.display.BitmapData,test_fill_color:uint=0xFFFFFF00):Point{
+		public static function getFirstNonTransparentPixelHitTest(bmd:BitmapData,test_fill_color:uint=0xFFFFFF00):Point{
 			var hit_rect:Rectangle=new Rectangle(0,0,bmd.width,1);
 			for(var i:uint=0;i<bmd.height;i++){
 				if(bmd.hitTest(new Point(),0x01,hit_rect)){
@@ -240,7 +240,7 @@ package com.sakri.utils{
 			return null;
 		}
 		
-		public static function changeEdgePixels(bmd:flash.display.BitmapData,replace:uint):flash.display.BitmapData{
+		public static function changeEdgePixels(bmd:BitmapData,replace:uint):BitmapData{
 			var ix:uint,iy:uint,bmd_height:uint=bmd.height,bmd_width:uint=bmd.width;
 			var max_y:uint=bmd_height-1,max_x:uint=bmd_width-1;
 			var update:Vector.<Point>=new Vector.<Point>();
