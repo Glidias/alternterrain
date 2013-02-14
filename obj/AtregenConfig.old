@@ -29,6 +29,7 @@
       <path-element>D:\Git\alternterrain\lib\Progression4.swc</path-element>
       <path-element>D:\Git\alternterrain\lib\Stats.swc</path-element>
       <path-element>D:\Git\alternterrain\lib\Alternativa3D.swc</path-element>
+      <path-element>D:\Git\alternterrain\lib\as3corelib.swc</path-element>
     </library-path>
   </compiler>
   <file-specs>

@@ -8,14 +8,17 @@ package atregen
 	import com.bit101.components.CheckBox;
 	import com.bit101.components.ComboBox;
 	import com.bit101.components.HBox;
+	import com.bit101.components.HUISlider;
 	import com.bit101.components.InputText;
 	import com.bit101.components.Label;
 	import com.bit101.components.NumericStepper;
 	import com.bit101.components.ProgressBar;
 	import com.bit101.components.PushButton;
+	import com.bit101.components.Slider;
 	import com.bit101.components.VBox;
 	import flash.display.Sprite;
 	import flash.events.Event;
+	import flash.events.IEventDispatcher;
 	import flash.net.FileFilter;
 	import flash.net.FileReference;
 	import flash.text.TextField;
@@ -59,6 +62,10 @@ package atregen
 		private var _numericAmplAcross:NumericStepper;
 		private var _numericPageSize:NumericStepper;
 		private var _lblPageSize:Label;
+		
+		private var _fileReferences:Vector.<FileReference> = new Vector.<FileReference>(); 
+		
+		private var fileExportUIStuff:Array = [];
 		
 		public function ATreGen() 
 		{
@@ -125,20 +132,51 @@ package atregen
 			new Label(hLayout, 0, 0, "Save images as:"); 
 			input_filename = new InputText(hLayout, 0, 0, "myterrain");
 			hLayout = new HBox(optionsHolder);
-			cbox_height = new CheckBox(hLayout, 0, 0, "Height Map", onOptionChecked); 
-			new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages);
+			
+			var count:int = 0;
+			
+			fileExportUIStuff.push(
+				cbox_height = new CheckBox(hLayout, 0, 0, "Height Map", onOptionChecked),
+				new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages),
+				getJPEGSlider(hLayout)
+			);
+			cbox_height.name = String(count++);
+			
 			hLayout = new HBox(optionsHolder);
-			cbox_normal = new CheckBox(hLayout, 0, 0, "Normal Map", onOptionChecked);
-			new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages);
+			fileExportUIStuff.push(
+				cbox_normal = new CheckBox(hLayout, 0, 0, "Normal Map", onOptionChecked),
+				new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages),
+				getJPEGSlider(hLayout)
+			);
+			cbox_normal.name = String(count++);
+			
 			hLayout = new HBox(optionsHolder);
-			cbox_diffuse = new CheckBox(hLayout, 0, 0, "Diffuse Map [biomediffuse]", onOptionChecked);
-			new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages);
+			fileExportUIStuff.push(
+				cbox_diffuse = new CheckBox(hLayout, 0, 0, "Diffuse Map [biomediffuse]", onOptionChecked),
+				new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages),
+				getJPEGSlider(hLayout)
+			);
+			cbox_diffuse.name = String(count++);
+				
 			hLayout = new HBox(optionsHolder);
-			cbox_light = new CheckBox(hLayout, 0, 0, "Light Map [slopelighting]", onOptionChecked);
-			new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages);
+			fileExportUIStuff.push(
+				cbox_light = new CheckBox(hLayout, 0, 0, "Light Map [slopelighting]", onOptionChecked),
+				new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages),
+				getJPEGSlider(hLayout)
+			);
+			cbox_light.name = String(count++);
+			
 			hLayout = new HBox(optionsHolder);
-			cbox_tiles = new CheckBox(hLayout, 0, 0, "Tile Map [biometiles]", onOptionChecked);
-			new ComboBox(hLayout, 0, 0, optionsDataOnly[0], optionsDataOnly);
+			fileExportUIStuff.push(
+				cbox_tiles = new CheckBox(hLayout, 0, 0, "Tile Map [biometiles]", onOptionChecked),
+				new ComboBox(hLayout, 0, 0, optionsDataOnly[0], optionsDataOnly),
+				getJPEGSlider(null)
+			);
+			cbox_tiles.name = String(count++);
+			
+			
+			_fileReferences.length = count;
+			
 			hLayout = new HBox(optionsHolder);
 			new Label(optionsHolder, 0, 0, "Choose a save option:");
 			b = new PushButton(optionsHolder, 0, 0, "Save for Sync (.tre/.tres and assets)", onSaveImagesClickSync);
@@ -146,7 +184,29 @@ package atregen
 			b = new PushButton(optionsHolder, 0, 0, "Save for ASync (.tre and assets)", onSaveImagesClickASync);
 			b.width = 200;
 			
+			var len:int = fileExportUIStuff.length;
+			for (var i:int = 0; i < 0; i += 3) {
+				(fileExportUIStuff[i] as CheckBox).addEventListener(Event.SELECT, onFileCheck);
+			};
 			
+			
+		}
+		
+		private function onFileCheck(e:Event):void 
+		{
+			var checkbox:CheckBox = (e.currentTarget as CheckBox);
+			var index:int = int(checkbox.name);
+		}
+		
+		
+		
+		private function getJPEGSlider(hLayout:HBox):HUISlider 
+		{
+			var re:HUISlider =  new HUISlider(hLayout, 0, 0, "JPEG Quality");
+			re.value = 80;
+			re.minimum = 1;
+			re.maximum = 100;
+			return re;
 		}
 		
 		private function onNumericPageSizeAdjust(e:Event):void 
