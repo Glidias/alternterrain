@@ -184,19 +184,11 @@ package atregen
 			b = new PushButton(optionsHolder, 0, 0, "Save for ASync (.tre and assets)", onSaveImagesClickASync);
 			b.width = 200;
 			
-			var len:int = fileExportUIStuff.length;
-			for (var i:int = 0; i < 0; i += 3) {
-				(fileExportUIStuff[i] as CheckBox).addEventListener(Event.SELECT, onFileCheck);
-			};
+			
 			
 			
 		}
 		
-		private function onFileCheck(e:Event):void 
-		{
-			var checkbox:CheckBox = (e.currentTarget as CheckBox);
-			var index:int = int(checkbox.name);
-		}
 		
 		
 		
@@ -240,7 +232,8 @@ package atregen
 		
 		private function onOptionChecked(e:Event):void 
 		{
-			
+			var checkbox:CheckBox = (e.currentTarget as CheckBox);
+			var index:int = int(checkbox.name);
 		}
 		
 		private function uiLoadMultipleClick(e:Event):void 
