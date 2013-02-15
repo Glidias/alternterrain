@@ -1,5 +1,6 @@
 package atregen 
 {
+	import alternterrain.core.Grid_QuadChunkCornerData;
 	import alternterrain.core.HeightMapInfo;
 	import alternterrain.core.QuadCornerData;
 	import atregen.util.QuadPageInstaller;
@@ -16,6 +17,7 @@ package atregen
 	import com.bit101.components.PushButton;
 	import com.bit101.components.Slider;
 	import com.bit101.components.VBox;
+	import flash.display.DisplayObject;
 	import flash.display.Sprite;
 	import flash.events.Event;
 	import flash.events.IEventDispatcher;
@@ -23,6 +25,7 @@ package atregen
 	import flash.net.FileReference;
 	import flash.text.TextField;
 	import flash.utils.ByteArray;
+	import flash.utils.Dictionary;
 	import net.hires.debug.Stats;
 	/**
 	 * App responsible for converting elevation map/island information into individual quad tree pages and accompanying detailed image data files.
@@ -32,6 +35,8 @@ package atregen
 	 */
 	public class ATreGen extends Sprite
 	{
+		static public const GENERATE_CHECK_COUNT:int = 2;
+		static public const HEIGHT_MAP_DONE:String = "heightMapDone";
 		
 		private var uiHolder:VBox;
 		private var optionsHolder:VBox;
@@ -64,6 +69,7 @@ package atregen
 		private var _lblPageSize:Label;
 		
 		private var _fileReferences:Vector.<FileReference> = new Vector.<FileReference>(); 
+		private var _fileRefDictIndex:Dictionary = new Dictionary();
 		
 		private var fileExportUIStuff:Array = [];
 		
@@ -100,7 +106,7 @@ package atregen
 		//	cbox_boxSmoothing.width = 160;
 			
 			hLayout = new HBox(uiHolder);
-			b = new PushButton( hLayout, 0, 0, "Load multiple elevation maps/islands", uiLoadMultipleClick);
+		//	b = new PushButton( hLayout, 0, 0, "Load multiple elevation maps/islands", uiLoadMultipleClick);
 			b.width = 200;
 		
 			hLayout = new HBox(uiHolder);
@@ -108,8 +114,8 @@ package atregen
 			_progressBar.width = 200;
 			_progressLabel = new Label(hLayout, 0, 0, "");
 				
-			var optionsAllImages:Array = [".jpg", ".png", ".data"];
-			var optionsDataOnly:Array = [".data"];
+			var optionsAllImages:Array = ["*.jpg", "*.png", "*.data"];
+			var optionsDataOnly:Array = ["*.data"];
 			
 			optionsHolder = new VBox(uiHolder);
 			optionsHolder.visible = false;
@@ -129,24 +135,26 @@ package atregen
 			lbl_hmSize = new Label(hLayout, 0, 0, ""); 
 			
 			hLayout = new HBox(optionsHolder);
-			new Label(hLayout, 0, 0, "Save images as:"); 
+			new Label(hLayout, 0, 0, "Save assets as:"); 
 			input_filename = new InputText(hLayout, 0, 0, "myterrain");
 			hLayout = new HBox(optionsHolder);
 			
 			var count:int = 0;
 			
 			fileExportUIStuff.push(
-				cbox_height = new CheckBox(hLayout, 0, 0, "Height Map", onOptionChecked),
+				cbox_height = new CheckBox(hLayout, 0, 0, "Generate height maps", onOptionChecked),
 				new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages),
-				getJPEGSlider(hLayout)
+				getJPEGSlider(hLayout),
+				new PushButton(hLayout, 0, 0, "Save maps", onAssetFileBtnSave)
 			);
 			cbox_height.name = String(count++);
 			
 			hLayout = new HBox(optionsHolder);
 			fileExportUIStuff.push(
-				cbox_normal = new CheckBox(hLayout, 0, 0, "Normal Map", onOptionChecked),
+				cbox_normal = new CheckBox(hLayout, 0, 0, "Generate normal maps", onOptionChecked),
 				new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages),
-				getJPEGSlider(hLayout)
+				getJPEGSlider(hLayout),
+				new PushButton(hLayout, 0, 0, "Save maps", onAssetFileBtnSave)
 			);
 			cbox_normal.name = String(count++);
 			
@@ -154,7 +162,8 @@ package atregen
 			fileExportUIStuff.push(
 				cbox_diffuse = new CheckBox(hLayout, 0, 0, "Diffuse Map [biomediffuse]", onOptionChecked),
 				new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages),
-				getJPEGSlider(hLayout)
+				getJPEGSlider(hLayout),
+				new PushButton(hLayout, 0, 0, "Save maps", onAssetFileBtnSave)
 			);
 			cbox_diffuse.name = String(count++);
 				
@@ -162,7 +171,8 @@ package atregen
 			fileExportUIStuff.push(
 				cbox_light = new CheckBox(hLayout, 0, 0, "Light Map [slopelighting]", onOptionChecked),
 				new ComboBox(hLayout, 0, 0, optionsAllImages[0], optionsAllImages),
-				getJPEGSlider(hLayout)
+				getJPEGSlider(hLayout),
+				new PushButton(hLayout, 0, 0, "Save maps", onAssetFileBtnSave)
 			);
 			cbox_light.name = String(count++);
 			
@@ -170,7 +180,8 @@ package atregen
 			fileExportUIStuff.push(
 				cbox_tiles = new CheckBox(hLayout, 0, 0, "Tile Map [biometiles]", onOptionChecked),
 				new ComboBox(hLayout, 0, 0, optionsDataOnly[0], optionsDataOnly),
-				getJPEGSlider(null)
+				getJPEGSlider(null),
+				new PushButton(hLayout, 0, 0, "Save maps", onAssetFileBtnSave)
 			);
 			cbox_tiles.name = String(count++);
 			
@@ -179,13 +190,37 @@ package atregen
 			
 			hLayout = new HBox(optionsHolder);
 			new Label(optionsHolder, 0, 0, "Choose a save option:");
-			b = new PushButton(optionsHolder, 0, 0, "Save for Sync (.tre/.tres and assets)", onSaveImagesClickSync);
+			b = new PushButton(optionsHolder, 0, 0, "Save for Sync (.tre/.tres only)", onSaveImagesClickSync);
+			b.name = "sync";
 			b.width = 200;
-			b = new PushButton(optionsHolder, 0, 0, "Save for ASync (.tre and assets)", onSaveImagesClickASync);
+			b = new PushButton(optionsHolder, 0, 0, "Save for Sync (.tre/.tres and checked maps)", onSaveImagesClickSync);
+			b.name = "syncAll";
+			b.width = 200;
+			b = new PushButton(optionsHolder, 0, 0, "Save for ASync (.tre only)", onSaveImagesClickASync);
+			b.name = "async";
+			b.width = 200;
+			b = new PushButton(optionsHolder, 0, 0, "Save for ASync (.tre and checked maps)", onSaveImagesClickASync);
+			b.name = "asyncAll";
 			b.width = 200;
 			
 			
+			var len:int = fileExportUIStuff.length;
+			for (var i:int = 0; i < len; i += 4) {
+				(fileExportUIStuff[i + 1] as IEventDispatcher).addEventListener(Event.SELECT, onFileTypeSelect);
+				(fileExportUIStuff[i + 3] as PushButton).visible = false;
+			}
 			
+		}
+		
+		
+		
+	
+		
+		private function onFileTypeSelect(e:Event):void 
+		{
+			var comboBox:ComboBox = (e.currentTarget as ComboBox);
+			var indexer:int = fileExportUIStuff.indexOf(comboBox) / 4;
+			fileExportUIStuff[indexer * 4 + 2].visible = comboBox.selectedIndex == 0;
 			
 		}
 		
@@ -220,20 +255,119 @@ package atregen
 		
 		public function onSaveImagesClickSync(e:Event):void   // will share heightmaps(s) per page,
 		{
+			var btn:PushButton = (e.currentTarget as PushButton);
 			
-			installHeightMap(_heightMaps[0]);
+			var len:int = _heightMaps.length;
+			var i:int ;
+			for (i= 0; i < len; i++) {
+				// stich neighboring heightmaps
+			}
+			
+			
+			for (i = 0; i < len; i++) {  // todo: push  this to serial list
+				installHeightMap(_heightMaps[i]);
+			}
+			
+
+			
+			if (btn.name === "syncAll") {  // include checked maps per page
+				
+			}
 		}
+		
 		
 		public function onSaveImagesClickASync(e:Event):void   // will always split heightmap(s) per page
 		{
+			var btn:PushButton = (e.currentTarget as PushButton);
+			
+			var len:int = _heightMaps.length;
+			for (var i:int = 0; i < len; i++) {
+				// stitch neighboring heightmaps
+			}
+			
+			// split heightmaps if required to form new grid of heightmaps
+			
+			
+			// install all heights that were splitted per page, each page contains their own unique heightMap reference.
+			
+			// according to heightmap grid, save out grid of quadtree pages 
+			//Grid_QuadChunkCornerData
+			
+			
+			
+			if (btn.name === "asyncAll") {  // include checked maps per page
+				
+			}
+		}
+		
+		
+		// Individual saving of maps per page
+		private function onAssetFileBtnSave(e:Event):void 
+		{
+			var btn:PushButton = (e.currentTarget as PushButton);
+			var indexer:int = fileExportUIStuff.indexOf(btn) / 4;
+			
 			
 			
 		}
+		
+		
 		
 		private function onOptionChecked(e:Event):void 
 		{
 			var checkbox:CheckBox = (e.currentTarget as CheckBox);
 			var index:int = int(checkbox.name);
+			
+			var fileRef:FileReference;
+				
+			if (checkbox.selected) {
+				if (index < GENERATE_CHECK_COUNT ) {
+					
+					checkSaveBtnVis();
+					return;
+				
+				}
+				if (_fileReferences[index] == null) {
+					_fileReferences[index] = fileRef = new FileReference();
+					fileRef.addEventListener(Event.SELECT, onFileSelected);
+					fileRef.addEventListener(Event.COMPLETE, onMapFileLoaded);
+					_fileRefDictIndex[fileRef] = index;
+					//fileRef.name
+				}
+				else fileRef = _fileReferences[index];	
+				
+				var fileTypes:String = (fileExportUIStuff[index * 4 + 1] as ComboBox).items.join(";");
+				fileRef.browse([new FileFilter(fileTypes, fileTypes)]);
+				
+				checkbox.selected = false;
+				
+				
+			}
+			else {
+				
+				
+			}
+			
+			checkSaveBtnVis();
+		
+			
+			
+		}
+		
+		private function onMapFileLoaded(e:Event):void 
+		{
+			_progressLabel.text = "Done.";
+			var index:int = _fileRefDictIndex[e.currentTarget];
+			fileExportUIStuff[index * 4].selected = true;
+			checkSaveBtnVis();
+		}
+		
+		private function checkSaveBtnVis():void 
+		{
+			var len:int = fileExportUIStuff.length;
+			for (var i:int = 0; i < len; i+=4) {
+				fileExportUIStuff[i + 3].visible = fileExportUIStuff[i].selected;
+			}
 		}
 		
 		private function uiLoadMultipleClick(e:Event):void 
@@ -299,16 +433,15 @@ package atregen
 		
 		private function installHeightMap(heightMap:HeightMapInfo):void {
 			installer = new QuadPageInstaller();
-			
 			installer.install(heightMap, 256, Math.pow(2, _numericPageSize.value), onInstallProgress);
 			installer.addEventListener(Event.COMPLETE, onInstallerComplete);
-			
-			
 		}
 		
 		private function onInstallerComplete(e:Event):void 
 		{
+			installer.removeEventListener(Event.COMPLETE, onInstallerComplete);
 			_progressLabel.text = "Done."
+			dispatchEvent( new Event(HEIGHT_MAP_DONE) );
 			
 			
 		}

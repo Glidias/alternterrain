@@ -39,6 +39,7 @@ package atregen.util
 		private var _count:int;
 		private var _sampleSize:int;
 		private var _heightMap:HeightMapInfo;
+		public var installedPages:InstalledQuadTreePages;
 
 		public var filename:String = "pages.data";
 		
@@ -197,22 +198,22 @@ package atregen.util
 			
 		}
 		
+	
+		
 		private function done():void {
 			dispatchEvent( new Event(Event.COMPLETE) );
 	
 			// TODO:
-			/*
-			var installedPages:InstalledQuadTreePages = new InstalledQuadTreePages();
+			///*
+			installedPages = new InstalledQuadTreePages();
 			installedPages.pageGrid = pageGrid;
 			installedPages.heightMap = _heightMap;
 			installedPages.totalPagesAcross = totalPagesAcross;
-			var bArray:ByteArray = new ByteArray();
-			installedPages.writeExternal(bArray);
-			bArray.compress();
-			*/
+			//*/
 			
 			//new FileReference().save(bArray, filename);
 			
+			_serialList.dispose();
 			_serialList = null;
 			_heightMap = null;
 			_currentGrid = null;
