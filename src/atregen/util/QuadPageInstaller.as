@@ -60,17 +60,24 @@ package atregen.util
 				throw new Error("Heightmap dimension across patches isn't base-2age:"+patchesAcross ) ;
 			}
 			
+			
 			var pAcross:int = patchesAcross / sampleSize;
 			_currentGrid = new Vector.<QuadSquareChunk>(pAcross * pAcross, true);
 			_currentAcross = pAcross;
-			_gatherCount = Math.log( pageSize / sampleSize ) * Math.LOG2E + 1;
-
+			_gatherCount = Math.round( Math.log( pageSize / sampleSize)  * Math.LOG2E) + 1;
+		
+		
+			
 			_sampleSize = sampleSize;
 			_heightMap = heightMap;
 			
+			
+			//_gatherCount++;
 			var i:int = _gatherCount;
 			var count:int = 0;
 			_count = 0;
+			
+			
 			
 			if (fresh) _serialList.addCommand( new Wait(.1) );
 			while ( --i > -1) {
@@ -201,7 +208,7 @@ package atregen.util
 	
 		
 		private function done():void {
-			dispatchEvent( new Event(Event.COMPLETE) );
+		
 	
 			// TODO:
 			///*
@@ -218,6 +225,9 @@ package atregen.util
 			_heightMap = null;
 			_currentGrid = null;
 			_nextGrid = null;
+			
+			
+				dispatchEvent( new Event(Event.COMPLETE) );
 		}
 		
 		private function installQuadChunkFromHeightmap(index:int, heightMap:HeightMapInfo, offsetX:int, offsetY:int,  sampleSize:int):void {

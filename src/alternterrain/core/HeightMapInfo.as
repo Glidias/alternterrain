@@ -267,7 +267,7 @@ package alternterrain.core
 		public function setFromByteArray(byteArray:ByteArray, heightMult:Number, patchesAcross:int, heightMin:int=0, tileSize:int=256):void 
 		{
 			if (!QuadCornerData.isBase2(tileSize)) throw new Error("Tile size isn't base 2!");
-			Scale = Math.log(Number(tileSize) + .01) * Math.LOG2E;
+			Scale = Math.round( Math.log(Number(tileSize) ) * Math.LOG2E);
 			var bWidth:int; var bHeight:int;
 			var vertsX:int = bWidth = patchesAcross + 1;
 			var vertsY:int = bHeight = patchesAcross + 1;
@@ -295,10 +295,12 @@ package alternterrain.core
 			Data = data;
 		}
 		
+	
+		
 		public function setFromBmpData(bmpData:BitmapData, heightMult:Number, heightMin:int=0, tileSize:int=256):void 
 		{
 			if (!QuadCornerData.isBase2(tileSize)) throw new Error("Tile size isn't base 2!");
-			Scale = Math.log(Number(tileSize) + .01) * Math.LOG2E;
+			Scale = Math.round( Math.log(Number(tileSize) ) * Math.LOG2E );
 			var bWidth:int; var bHeight:int;
 			var vertsX:int = bWidth = bmpData.width;
 			var vertsY:int = bHeight = bmpData.height;

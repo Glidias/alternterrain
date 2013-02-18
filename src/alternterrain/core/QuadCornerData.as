@@ -83,7 +83,7 @@ package alternterrain.core
 			quadRoot.zorg = y;
 			if (!isBase2(size)) throw new Error("Size isn't base 2!" + size);
 			size >>= 1;
-			quadRoot.Level = int( Math.log(Number(size)) * Math.LOG2E);
+			quadRoot.Level = Math.round( Math.log(Number(size)) * Math.LOG2E);
 			
 			var sq:QuadSquare = new QuadSquare(quadRoot);
 	
@@ -116,13 +116,13 @@ package alternterrain.core
 				while(input>1){input>>=1; ++a;}
 				return a;
 			}else{
-				return Math.log(input) * Math.LOG2E;
+				return Math.round( Math.log(input) * Math.LOG2E);
 			}
 		}
 
 				
 		public static function isBase2(val:int):Boolean {
-			return Math.pow(2, int( Math.log(val) * Math.LOG2E) ) == val;
+			return Math.pow(2, Math.round( Math.log(val) * Math.LOG2E) ) == val;
 		}
 		
 		/*

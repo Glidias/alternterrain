@@ -289,7 +289,7 @@ package alternterrain.objects
 		{
 			if (!QuadCornerData.isBase2(tileSize)) throw new Error("tileSize must be base 2!");
 			
-			lodLvlMin = int(Math.log(tileSize * PATCHES_ACROSS + .01) * Math.LOG2E) - 1;
+			lodLvlMin = Math.round(Math.log(tileSize * PATCHES_ACROSS) * Math.LOG2E) - 1;
 
 			if (PROTO_32 == null) {
 				setupPrototypes(context3D, tileSize);	
@@ -304,7 +304,7 @@ package alternterrain.objects
 			}
 			*/
 			this.tileSize = tileSize;
-			this.tileShift = int(Math.log(tileSize + .01) * Math.LOG2E);
+			this.tileShift = Math.round(Math.log(tileSize ) * Math.LOG2E);
 			
 			if ( uvTileSize > 0 && !QuadCornerData.isBase2(uvTileSize)) throw new Error("uvTileSize must be base 2!");
 			
@@ -312,7 +312,7 @@ package alternterrain.objects
 		
 		private function setupVOffsets(page:QuadTreePage):void 
 		{
-			var level:int = int(Math.log(page.uvTileSize + .01) * Math.LOG2E);
+			var level:int = Math.round(Math.log(page.uvTileSize) * Math.LOG2E);
 			var numLevels:int = (page.Level+1) - level + 1;
 			_vOffsets = new Vector.<int>();
 			TerrainGeomTools.calculateQuadTreeOffsetTable(_vOffsets, numLevels, 1, PATCHES_ACROSS);
@@ -346,7 +346,7 @@ package alternterrain.objects
 			validateExpandAttribIndex(VertexAttributes.TEXCOORDS[0]);
 			myGeometry._attributesStreams[VertexAttributes.TEXCOORDS[0]] = _defaultUVStream;
 			
-			var level:int = int(Math.log(uvTileSize + .01) * Math.LOG2E);
+			var level:int = Math.round(Math.log(uvTileSize ) * Math.LOG2E);
 			var numLevels:int = (rootLevel+1) - level + 1;
 			tilingUVBuffers = new Vector.<VertexBuffer3D>(numLevels, true);
 			var count:int = 0;

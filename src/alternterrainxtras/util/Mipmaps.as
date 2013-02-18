@@ -65,7 +65,7 @@ package alternterrainxtras.util
             public function getMipmapOffsetTable():BitmapData {
                 if (numMaps == 0) throw new Error("No mipmaps found!");
                 var tileSizePx:int = _texture.width;
-                var w:int = isPower2(numMaps) ? numMaps :  (1 << ( Math.ceil( Math.log( numMaps  + .01) * Math.LOG2E ) ) ); 
+                var w:int = isPower2(numMaps) ? numMaps :  (1 << ( Math.round( Math.log( numMaps) * Math.LOG2E ) ) ); 
                 var r:int = 255;    // tilesize ratio  (1, .5, .25)
                 var g:int = 0;    // u offset as a ratio of tile size  
                 var b:int = 0;  // whether there is a base u offset ratio of tilesizePx

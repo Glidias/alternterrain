@@ -6,7 +6,7 @@
     <movie input="" />
     <movie path="bin\Atregen.swf" />
     <movie fps="60" />
-    <movie width="800" />
+    <movie width="960" />
     <movie height="600" />
     <movie version="11" />
     <movie minorVersion="0" />

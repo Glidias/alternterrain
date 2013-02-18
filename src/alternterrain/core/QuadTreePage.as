@@ -70,7 +70,7 @@ package alternterrain.core
 			quadRoot.zorg = y;
 			if (!QuadCornerData.isBase2(size)) throw new Error("Size isn't base 2!" + size);
 			size >>= 1;
-			quadRoot.Level = Math.log(Number(size)) * Math.LOG2E;
+			quadRoot.Level = Math.round( Math.log(Number(size)) * Math.LOG2E );
 			
 			return quadRoot;
 		}
