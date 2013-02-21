@@ -1,5 +1,8 @@
 package alternterrainxtras.util 
 {
+	import alternterrainxtras.msa.Perlin;
+	import alternterrainxtras.msa.Smoothing;
+	import flash.display.BitmapData;
 	/**
 	 * 
 	 * Useful for modifying terrain heights, adding additional detail, noise, smoothing, etc. Based on code found in terrain.cpp.
@@ -51,30 +54,6 @@ package alternterrainxtras.util
 			iterationsDone = 0;
 		}
 		
-		/*
-		 * Is Atregen too monolithic? There could actually be individual seperate programs modules to:
-	     *
-		 * 1) Convert image file formats or .data of elevation255 data to hm.   (elev255_to_hm.swf)  - Atregen does this, even though it doesn't save out hm files but saves out final tre file.
-		 * 2) Convert model files (3ds/dae/etc.) to hm   						(model3d_to_hm.swf) - Atregen is intended to do this as well
-		 * 3) Load elevation255. (HM sample size, hm output size). Split it and expand if necessary. Apply filters for added detail. Smooth edges between hm sampled zones if neceessary. Save out a hm or multiple .hm files.   (hm_to_final_hm_s.swf) - Atregen does NOT do this and has no real need to do this as not all use-cases require such splitting except for super-large islands.
-		 * 4) Convert .hm to normal maps per page.    (hm_to_normal.swf)  - Ategen does this. 
-		 * 5) Convert .hm to height maps per page     (hm_to_height.swf)  - Atregen does this.
-		 * 6) Split feeded in assets such as tile maps, light maps, etc. if required to page size.  (split_tilemap.swf, split_lightmap.swf) etc. - Atregen does this
-		 * 7) Convert .hm to a .tre file or multiple .tres file, depending.   (hm_to_tre.swf), (hm_to_tres.swf) / This is what Atregen  does mainly
-		 * 
-		 * The advantage of seperate programs is that certain processes can be executed on demand when the user "visits" a location in a large world.
-		 * In that way, there's no need handle pre-parse large worlds which might be a long process for Atregen. Memory footprint per application is also potentially smaller.
-		 * 
-		Filters:
-		- circle fault 
-		- line fault
-		- noise
-		- smooth
-		* 
-		* Can atregen handle up to a 8192x8192 heightmap without crashing?
-		* 
-		*/
-		
 		public static const STEP:int =	1;
 		public static const SIN:int =	2;
 		public static const COS	:int =	3;
@@ -98,6 +77,33 @@ package alternterrainxtras.util
 			return int(Math.random() * 32767);
 		}
 		
+		public function terrainGrayscaleHeightMap(heightmap:BitmapData):void {
+			var range:Number = maxDisp - minDisp;
+			var multiplier:Number = 1 / 255;
+			for (var y:int = 0; y < terrainGridLength; y++) {
+				for (var x:int = 0; x < terrainGridWidth; x++) {
+					terrainHeights[y*terrainGridWidth + x] += minDisp + (heightmap.getPixel(x, y) & 0xFF)*multiplier * range;
+				}
+			}
+		}
+		
+		public function terrainApplyNoise(scale:Number, octaves:int=4, lacunarity:Number=128, H:Number = 128 ):void {
+			Perlin.setParams( { octaves:octaves, H:H, lacunarity:lacunarity } );
+			var phase:int = terrainRandomSeed;
+			var range:Number = maxDisp - minDisp;
+			var mx:int = terrainGridWidth * .5;
+			var my:int =  terrainGridLength * .5;
+			var xMult:Number =  1 / scale;
+			var yMult:Number =  1 / scale;
+			
+			for (var y:int = 0; y < terrainGridLength; y++) {
+				for (var x:int = 0; x < terrainGridWidth; x++) {
+					terrainHeights[y * terrainGridWidth + x] += minDisp +  Perlin.fractalNoise((x - mx)*xMult, (y - my)*yMult , phase) * range;  //Perlin.fractalNoise((x - mx), (y - my) , phase)
+					
+				}
+			}
+		}
+		
 		public function terrainIterateCircles( numIterations:int):void {
 
 			var dispAux:Number;
@@ -108,8 +114,8 @@ package alternterrainxtras.util
 			halfZ = terrainGridLength / 2;
 			for (k = 0; k < numIterations;k++) {
 
-				z = Math.random() * terrainGridWidth;
-				x = Math.random() * terrainGridLength;
+				z = Math.random() * (terrainGridWidth);
+				x = Math.random() *( terrainGridLength);
 				iterationsDone++;
 				if (iterationsDone < itMinDisp)
 					disp = maxDisp + (iterationsDone/(itMinDisp+0.0))* (minDisp - maxDisp);
@@ -132,6 +138,71 @@ package alternterrainxtras.util
 					}
 			}
 	
+
+		}
+		
+		
+		private function deposit(x:int, z:int):void {
+
+			var j:int,k:int,kk:int,jj:int,flag:int;
+
+			flag = 0;
+			for (k=-1;k<2;k++)
+				for(j=-1;j<2;j++)
+					if (k!=0 && j!=0 && x+k>-1 && x+k<terrainGridWidth && z+j>-1 && z+j<terrainGridLength) 
+						if (terrainHeights[(x+k) * terrainGridLength + (z+j)] < terrainHeights[x * terrainGridLength + z]) {
+							flag = 1;
+							kk = k;
+							jj = j;
+						}
+
+			if (!flag)
+				terrainHeights[x * terrainGridLength + z] += maxDisp;
+			else
+				deposit(x+kk,z+jj);
+		}
+
+
+		public function terrainIterateParticleDeposition( numIt:int):void {
+	
+			var x:int,z:int,i:int,dir:int;
+
+
+			x = rand() % terrainGridWidth;
+			z = rand() % terrainGridLength;
+
+			for (i=0; i < numIt; i++) {
+
+				iterationsDone++;
+				dir = rand() % 4;
+
+				if (dir == 2) {
+					x++;
+					if (x >= terrainGridWidth)
+						x = 0;
+				}
+				else if (dir == 3){
+					x--;
+					if (x == -1)
+						x = terrainGridWidth-1;
+				}
+				
+				else if (dir == 1) {
+					z++;
+					if (z >= terrainGridLength)
+						z = 0;
+				}
+				else if (dir == 0){
+					z--;
+					if (z == -1)
+						z = terrainGridLength - 1;
+				}
+
+				if (terrainParticleMode == ROLL)
+					deposit(x,z);
+				else
+					terrainHeights[x * terrainGridLength + z] += maxDisp;
+			}
 
 		}
 		
@@ -310,6 +381,10 @@ package alternterrainxtras.util
 			}
 		}
 		
+		/**
+		 * 
+		 * @param	k	Smoothness ratio betwene 0-1. A value of 1 would flatten terrain. Smaller numbers indiciate smoothing amount.
+		 */
 		public function terrainSmooth(k:Number):void {
 
 			var i:int;
@@ -325,12 +400,12 @@ package alternterrainxtras.util
 					terrainHeights[i*terrainGridWidth + j] =
 						terrainHeights[i*terrainGridWidth + j] * (1-k) + 
 						terrainHeights[(i-1)*terrainGridWidth + j] * k;
-			
 			for(i=0; i<terrainGridLength; i++)
-				for(j=terrainGridWidth-1;j>-1;j--)
+				for(j=terrainGridWidth-2;j>-1;j--)
 					terrainHeights[i*terrainGridWidth + j] =
 						terrainHeights[i*terrainGridWidth + j] * (1-k) + 
-						terrainHeights[i*terrainGridWidth + j+1] * k;
+						terrainHeights[i * terrainGridWidth + j + 1] * k;
+						
 			for(i=terrainGridLength-2;i<-1;i--)
 				for(j=0;j<terrainGridWidth;j++)
 					terrainHeights[i*terrainGridWidth + j] =

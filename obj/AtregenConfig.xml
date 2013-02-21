@@ -33,7 +33,7 @@
     </library-path>
   </compiler>
   <file-specs>
-    <path-element>D:\Git\alternterrain\src\atregen\ATreGen.as</path-element>
+    <path-element>D:\Git\alternterrain\src\examples\TestTerrainFilters.as</path-element>
   </file-specs>
   <default-background-color>#FFFFFF</default-background-color>
   <default-frame-rate>60</default-frame-rate>

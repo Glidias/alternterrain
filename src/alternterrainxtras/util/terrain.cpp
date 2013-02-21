@@ -1065,7 +1065,7 @@ void terrainSmooth(float k) {
 				terrainHeights[(i-1)*terrainGridWidth + j] * k;
 	
 	for(i=0; i<terrainGridLength; i++)
-		for(j=terrainGridWidth-1;j>-1;j--)
+		for(j=terrainGridWidth-2;j>-1;j--)
 			terrainHeights[i*terrainGridWidth + j] =
 				terrainHeights[i*terrainGridWidth + j] * (1-k) + 
 				terrainHeights[i*terrainGridWidth + j+1] * k;

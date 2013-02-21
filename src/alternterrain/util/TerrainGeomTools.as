@@ -68,6 +68,21 @@ package alternterrain.util
 			return result;
 		}
 		
+		public static function modifyGeometryByHeightData(geometry:Geometry, heightData:Vector.<int>, verticesAcross:int):void {
+			var uvs:Vector.<Number> = geometry.getAttributeValues(VertexAttributes.TEXCOORDS[0]);
+			var positions:Vector.<Number> =  geometry.getAttributeValues(VertexAttributes.POSITION);
+			
+			var vLen:int = geometry.numVertices;
+			for (var i:int = 0; i < vLen; i++) {
+				var x:int = uvs[i * 2] * (verticesAcross-1);
+				var y:int = uvs[i * 2 + 1] * (verticesAcross-1);
+				positions[i * 3 + 2] =  heightData[y*verticesAcross + x];
+			
+			}
+			
+			 geometry.setAttributeValues(VertexAttributes.POSITION, positions);
+		}
+		
 		public static function createLODTerrainChunkForMesh(patchesAcross:int=32, patchSize:int=256):GeometryResult 
 		{
 			var vAcross:int = patchesAcross + 1;

@@ -1,4 +1,4 @@
-Welcome to the AlternTerrain LOD system. Note that these packages arein no way affiliated to the Alternativa dev-team (this isn't official code but 3rd-party code), but it was created to run under Alternativa3D.
+Welcome to the AlternTerrain LOD system. Note that these packages are in no way affiliated to the Alternativa dev-team (ie. it isn't official code but 3rd-party code), but it was created to run under Alternativa3D. For guides on how to use various classes/examples, please refer to the comments in the code accordingly and any accompanying wiki guides on the github respository.
 
 TERRAIN CORE PACKAGE:  alternterrain
 *******************************************
@@ -6,10 +6,8 @@ This is the core package for the AlternTerrain LOD system, tailored to work for 
 
 ATREGEN:  atregen
 ***********************************
-This is the application used to generate .tre/.tres files to get terrains to run under the AlternTerrain LOD system. This is the basic format which contains all the QuadTreePage data (quad-node bounding boxes, lod level error values, etc.) and any accompanying relief data  (if any) to run LOD terrain. The file format itself is platform-agnostic and could potentially work for other 3d engine packages as well. This software provides some other misc functions to help generate/split out normal maps, grayscale heightmaps, etc. to be used as terrain materials on multi-paged-terrain systems. You can load pure elevation data from grayscale images (.jpg/.png/.data) or load multiple heightmap (our own .hm file format based on the alternterrain.core.HeightMapInfo class) as input for generating the .tre/.tres files.
-
-atregen.modeltohm (on the roadmap)
-- This is an Alternativa3D-8 based loader used to load in any .3ds/.dae format terrain, and convert it to a heightmap (.hm) file.  I decided to create a seperate program for converting of 3d models to heightmaps so that Atregen can be mostly platform agnostic. 
+atregen.Atregen
+This is the main application used to generate .tre/.tres files to get terrains to run under the AlternTerrain LOD system. This is the basic format which contains all the QuadTreePage data (quad-node bounding boxes, lod level error values, etc.) and any accompanying relief data  (if any) to run LOD terrain. The file format itself is platform-agnostic and could potentially work for other 3d engine packages as well. This software provides some other misc functions to help generate/split out normal maps, grayscale heightmaps, etc. to be used as terrain materials on multi-paged-terrain systems. You can load pure elevation data from grayscale images (.jpg/.png/.data) or load multiple heightmap (our own .hm file format based on the alternterrain.core.HeightMapInfo class) as input for generating the .tre/.tres files.
 
 
 EXAMPLES PACKAGE:  examples (on the roadmap. Currently this is a dumping ground of old code)
@@ -17,18 +15,24 @@ EXAMPLES PACKAGE:  examples (on the roadmap. Currently this is a dumping ground 
 Working examples that you can run and test various features of the engine and it's applications.
 
 
-TERRAIN EXTRAS PACKAGE:  alternterrainextras
+TERRAIN XTRAS PACKAGE:  alternterrainxtras
 **********************************************
 This is a non-core package which other non-core applications (eg. some examples, external terrain generators) depend on.
 
-alternterrainextras.util
+alternterrainxtras.util
 - Generic utilities that other applications depend on.
 
-alternterrainextras.LODTileAtlasMaterial/TileAtlasMaterial
+alternterrainxtras.LODTileAtlasMaterial/TileAtlasMaterial
 - This material is a specialised material used for tile-set atlas texturing of multiple biomes.
 
-alternterrainextras.biomer   (on the roadmap)
+alternterrainxtras.biomer   (on the roadmap)
 - This utility is responsible for analysing biome information from the multiple gridded biome image maps and their respective heightmaps, where each biome has their own unique tile-set. It procedurally assigns and saves lookup table of what tilesets are required per heightmaped page, and assigns the appropiate texture from the biome tileset depending on elevation and slope, therefore using different biomed tilesets for specific heightmap pages. This is for much larger worlds where multiple tilesets are used depending on the biomes found within a terrain page, rather than just sticking to 1 single tileset for a single terrain world.
+
+alternterrainxtras.modeltohm (on the roadmap)
+- This is an Alternativa3D-8 powered loader used to load in any .3ds/.dae format terrain, and convert it to a heightmap (.hm) file.  I decided to create a seperate program for converting of 3d models to heightmaps so that Atregen can be mostly platform agnostic without having to unnecessarily run the Alternativa3d-8 engine.
+
+alternterrainxtras.msa
+- Noise filters suite, based on https://github.com/memo/AS3-Noise-Suite/tree/master/msa/noise .
 
 
 TERRAIN GENERATORS PACKAGE:  terraingen
@@ -40,4 +44,4 @@ This is an island/continent generator to  help generate an island/continent with
 
 terraingen.expander.ProceduralExpansion
 -------------------------------------------
-The utility is used for creating expanded procedural terrain detail over small grayscaled heightmap image samples, and saving out full resolution heightmap(s) accordingly. The problem with most grayscaled heightmaps is that they can potentially lack detail since the resolution is limited to 0-255 units. Thus, this utility can be used to process such low-detail heightmaps to produce more natural-looking (bumpier) terrains and ensure each page sample is seamed smoothly across the edges
+The utility is used for quickly creating expanded procedural terrain detail over small grayscaled heightmap image samples, and saving out full resolution heightmap(s) accordingly. The problem with most grayscaled heightmaps is that they can potentially lack detail since the resolution is limited to 0-255 units (epsecially for larger worlds). Thus, this utility can be used to process low-detail heightmaps to produce more natural-looking (bumpier) terrains (by adding detail) and ensure each page sample is seamed smoothly across the edges. I created this specifically to get around the the fact that the island/continent generator as described above didn't provide much detail for larger/higher resolution continents. 
