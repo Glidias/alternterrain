@@ -1359,12 +1359,7 @@ package terraingen.island  {
                           function (e:Event):void {
                             new FileReference().save(exportPolygons(), 'map.xml');
                           }));
-						  */
-						  
-			 controls.addChild(makeButton("Export ISL", 50, y+88+44, 100,
-                   function (e:Event):void {
-                      //new FileReference().save(exportPolygons(), 'map.isl');
-             }));
+						  */		
     }
 	
 	private function createBiomeApplication(bytes:ByteArray):void 

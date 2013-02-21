@@ -1,7 +1,7 @@
 package alternterrainxtras.util 
 {
 	/**
-	 * ...
+	 * Utility to help create a texture atlas of tiles
 	 * @author Glenn Ko
 	 */
 	import flash.display.Bitmap;

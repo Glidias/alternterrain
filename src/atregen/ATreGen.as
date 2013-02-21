@@ -82,8 +82,8 @@ package atregen
 		private var imageFileExtsDesc:String = "*.jpg;*.jpeg;*.png;*.data";
 		
 		// todo: provide support for models!
-		private var elevFileExts:String = "*.jpg;*.jpeg;*.png;*.data;*.isl";
-		private var elevFileExtsDesc:String = "*.jpg;*.jpeg;*.png;*.data;*.isl";
+		private var elevFileExts:String = "*.jpg;*.jpeg;*.png;*.data;";
+		private var elevFileExtsDesc:String = "*.jpg;*.jpeg;*.png;*.data;";
 		
 		private var _singleFileRef:FileReference;
 		private var _stats:Stats;
@@ -119,6 +119,8 @@ package atregen
 		public function ATreGen() 
 		{
 			new LoadAliases();
+			
+		
 			
 			addChild( _stats = new Stats() );
 			alignStats();

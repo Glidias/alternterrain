@@ -6,7 +6,7 @@ package alternterrainxtras.util
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
 	/**
-	 * ...
+	 * Utility to help create/bake mipmaps.
 	 * @author Glenn Ko
 	 */
 	public class Mipmaps {

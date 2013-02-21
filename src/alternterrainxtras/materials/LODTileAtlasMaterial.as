@@ -8,7 +8,7 @@ package alternterrainxtras.materials
 	import alternterrain.materials.ILODTerrainMaterial;
 	
 	/**
-	 * ...
+	 * Extended TileAtlasMaterial to support ILODTerrainMaterial implementation
 	 * @author Glenn Ko
 	 */
 	public class LODTileAtlasMaterial extends TileAtlasMaterial implements ILODTerrainMaterial

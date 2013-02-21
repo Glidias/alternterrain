@@ -1,0 +1,43 @@
+Welcome to the AlternTerrain LOD system. Note that these packages arein no way affiliated to the Alternativa dev-team (this isn't official code but 3rd-party code), but it was created to run under Alternativa3D.
+
+TERRAIN CORE PACKAGE:  alternterrain
+*******************************************
+This is the core package for the AlternTerrain LOD system, tailored to work for Alternativa3D version 8. Some of the classes can be refered here for porting over the LOD system to other engines if you so wish.
+
+ATREGEN:  atregen
+***********************************
+This is the application used to generate .tre/.tres files to get terrains to run under the AlternTerrain LOD system. This is the basic format which contains all the QuadTreePage data (quad-node bounding boxes, lod level error values, etc.) and any accompanying relief data  (if any) to run LOD terrain. The file format itself is platform-agnostic and could potentially work for other 3d engine packages as well. This software provides some other misc functions to help generate/split out normal maps, grayscale heightmaps, etc. to be used as terrain materials on multi-paged-terrain systems. You can load pure elevation data from grayscale images (.jpg/.png/.data) or load multiple heightmap (our own .hm file format based on the alternterrain.core.HeightMapInfo class) as input for generating the .tre/.tres files.
+
+atregen.modeltohm (on the roadmap)
+- This is an Alternativa3D-8 based loader used to load in any .3ds/.dae format terrain, and convert it to a heightmap (.hm) file.  I decided to create a seperate program for converting of 3d models to heightmaps so that Atregen can be mostly platform agnostic. 
+
+
+EXAMPLES PACKAGE:  examples (on the roadmap. Currently this is a dumping ground of old code)
+********************************************
+Working examples that you can run and test various features of the engine and it's applications.
+
+
+TERRAIN EXTRAS PACKAGE:  alternterrainextras
+**********************************************
+This is a non-core package which other non-core applications (eg. some examples, external terrain generators) depend on.
+
+alternterrainextras.util
+- Generic utilities that other applications depend on.
+
+alternterrainextras.LODTileAtlasMaterial/TileAtlasMaterial
+- This material is a specialised material used for tile-set atlas texturing of multiple biomes.
+
+alternterrainextras.biomer   (on the roadmap)
+- This utility is responsible for analysing biome information from the multiple gridded biome image maps and their respective heightmaps, where each biome has their own unique tile-set. It procedurally assigns and saves lookup table of what tilesets are required per heightmaped page, and assigns the appropiate texture from the biome tileset depending on elevation and slope, therefore using different biomed tilesets for specific heightmap pages. This is for much larger worlds where multiple tilesets are used depending on the biomes found within a terrain page, rather than just sticking to 1 single tileset for a single terrain world.
+
+
+TERRAIN GENERATORS PACKAGE:  terraingen
+*******************************************
+
+terraingen.island.MapGen2Main
+--------------------------------
+This is an island/continent generator to  help generate an island/continent with accompanying elevation/moisture/biome/lightslope data. The generator support from 512 to 2048 pixel-long maps. For maps of larger resolutions (eg. detailed maps that go beyond 16km square, ie. 2048x2048 pixels/tiles), you need to use atregen.Atregen (to save out splitted heightmaps per page/sample) and the accompanying expander utility under terraingen.expander.ProceduralExpansion to help create more procedural detail for each heightmap at a higher resolution, which would then combine these  multiple heightmap pages/samples into a single heightmap (if the island isn't too big) or multiple paged heightmaps accordingly that can be loaded asyncronously.  From these heightmaps, they can be loaded in Atregen again to be saved into multiple .tre files or a single .tres file.
+
+terraingen.expander.ProceduralExpansion
+-------------------------------------------
+The utility is used for creating expanded procedural terrain detail over small grayscaled heightmap image samples, and saving out full resolution heightmap(s) accordingly. The problem with most grayscaled heightmaps is that they can potentially lack detail since the resolution is limited to 0-255 units. Thus, this utility can be used to process such low-detail heightmaps to produce more natural-looking (bumpier) terrains and ensure each page sample is seamed smoothly across the edges
