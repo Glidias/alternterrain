@@ -7,7 +7,7 @@ This is the core package for the AlternTerrain LOD system, tailored to work for 
 ATREGEN:  atregen
 ***********************************
 atregen.Atregen
-This is the main application used to generate .tre/.tres files to get terrains to run under the AlternTerrain LOD system. This is the basic format which contains all the QuadTreePage data (quad-node bounding boxes, lod level error values, etc.) and any accompanying relief data  (if any) to run LOD terrain. The file format itself is platform-agnostic and could potentially work for other 3d engine packages as well. This software provides some other misc functions to help generate/split out normal maps, grayscale heightmaps, etc. to be used as terrain materials on multi-paged-terrain systems. You can load pure elevation data from grayscale images (.jpg/.png/.data) or load multiple heightmap (our own .hm file format based on the alternterrain.core.HeightMapInfo class) as input for generating the .tre/.tres files.
+This is the main application used to generate .tre/.tres files to get terrains to run under the AlternTerrain LOD system. This is the basic format which contains all the QuadTreePage data (quad-node bounding boxes, lod level error values, etc.) and any accompanying relief data  (if any) to run LOD terrain. The file format itself is platform-agnostic and could potentially work for other 3d engine packages as well. This software provides some other misc functions to help generate/split out normal maps, grayscale heightmaps, etc. to be used as terrain materials on multi-paged-terrain systems. You can load pure elevation data from grayscale images (.jpg/.png/.data) or load multiple heightmap (our own .hmi file format based on the alternterrain.core.HeightMapInfo class) as input for generating the .tre/.tres files.
 
 
 EXAMPLES PACKAGE:  examples (on the roadmap. Currently this is a dumping ground of old code)
@@ -29,7 +29,7 @@ alternterrainxtras.biomer   (on the roadmap)
 - This utility is responsible for analysing biome information from the multiple gridded biome image maps and their respective heightmaps, where each biome has their own unique tile-set. It procedurally assigns and saves lookup table of what tilesets are required per heightmaped page, and assigns the appropiate texture from the biome tileset depending on elevation and slope, therefore using different biomed tilesets for specific heightmap pages. This is for much larger worlds where multiple tilesets are used depending on the biomes found within a terrain page, rather than just sticking to 1 single tileset for a single terrain world.
 
 alternterrainxtras.modeltohm (on the roadmap)
-- This is an Alternativa3D-8 powered loader used to load in any .3ds/.dae format terrain, and convert it to a heightmap (.hm) file.  I decided to create a seperate program for converting of 3d models to heightmaps so that Atregen can be mostly platform agnostic without having to unnecessarily run the Alternativa3d-8 engine.
+- This is an Alternativa3D-8 powered loader used to load in any .3ds/.dae format terrain, and convert it to a heightmap (.hmi) file.  I decided to create a seperate program for converting of 3d models to heightmaps so that Atregen can be mostly platform agnostic without having to unnecessarily run the Alternativa3d-8 engine.
 
 alternterrainxtras.msa
 - Noise filters suite, based on https://github.com/memo/AS3-Noise-Suite/tree/master/msa/noise .

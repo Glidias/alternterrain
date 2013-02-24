@@ -2,14 +2,11 @@ package alternterrain.core
 {
 	import flash.geom.Point;
 	import flash.utils.IDataOutput;
-	//import alternativa.engine3d.core.Vertex;
-	import alternativa.engine3d.objects.Mesh;
 	import flash.display.BitmapData;
-	import alternativa.engine3d.alternativa3d;
 	import flash.utils.ByteArray;
 	import flash.utils.IDataInput;
 	import flash.utils.IExternalizable;
-	use namespace alternativa3d;
+
 	
 	/**
 	 * @author Thatcher Ulrich (tu@tulrich.com)
@@ -29,12 +26,12 @@ package alternterrain.core
 		public var ZOrigin:int;
 		public var	XSize:int, ZSize:int;
 		public var	RowWidth:int;
-		public var	Scale:int;
+		public var	Scale:int = 8;
 		
 		
 		// Retreieve height data directly for writing into bytearray buffer!
 		public function getData(ix:int, iz:int):int {
-			return Data[ix + iz * RowWidth]
+			return Data[ix + iz * RowWidth]; 
 		}
 		
 		/*
@@ -264,9 +261,26 @@ package alternterrain.core
 		}
 		*/
 		
+		public function copyData(xStart:int, yStart:int, width:int, height:int, hm:HeightMapInfo, destX:int = 0, destY:int = 0 ):void {
+			var vec:Vector.<int> = hm.Data;
+			var xEnd:int = xStart + width;
+			var yEnd:int = yStart + height;
+			for (var y:int = yStart; y < yEnd; y++) {
+				for (var x:int = xStart; x < xEnd; x++ ) {
+					var cx:int = x < 0 ? 0 : x >= hm.XSize ? hm.XSize - 1 : x;
+					var cy:int = y < 0 ? 0 : y >= hm.ZSize ? hm.ZSize - 1 : y;
+					Data[(y-yStart+destY) * XSize + x - xStart + destX] = vec[ cy * hm.XSize + cx ];
+				}
+			}
+		}
+		
+		public static function isBase2(val:int):Boolean {
+			return Math.pow(2, Math.round( Math.log(val) * Math.LOG2E) ) == val;
+		}
+		
 		public function setFromByteArray(byteArray:ByteArray, heightMult:Number, patchesAcross:int, heightMin:int=0, tileSize:int=256):void 
 		{
-			if (!QuadCornerData.isBase2(tileSize)) throw new Error("Tile size isn't base 2!");
+			if (!isBase2(tileSize)) throw new Error("Tile size isn't base 2!");
 			Scale = Math.round( Math.log(Number(tileSize) ) * Math.LOG2E);
 			var bWidth:int; var bHeight:int;
 			var vertsX:int = bWidth = patchesAcross + 1;
@@ -299,7 +313,7 @@ package alternterrain.core
 		
 		public function setFromBmpData(bmpData:BitmapData, heightMult:Number, heightMin:int=0, tileSize:int=256):void 
 		{
-			if (!QuadCornerData.isBase2(tileSize)) throw new Error("Tile size isn't base 2!");
+			if (!isBase2(tileSize)) throw new Error("Tile size isn't base 2!");
 			Scale = Math.round( Math.log(Number(tileSize) ) * Math.LOG2E );
 			var bWidth:int; var bHeight:int;
 			var vertsX:int = bWidth = bmpData.width;
@@ -386,6 +400,29 @@ package alternterrain.core
 		public function reset():void 
 		{
 			Data = new Vector.<int>(RowWidth*RowWidth, true);
+		}
+		
+		public function paddEdgeDataValues():void 
+		{
+			var x:int; var y:int;
+			
+			var cap:int;
+			
+			x = XSize -1;
+			cap = ZSize - 2;
+			for (y = 0; y < cap; y++) {
+				Data[y * RowWidth + x] = Data[y*RowWidth + x - 1];
+			}
+			
+			y = ZSize - 1;
+			cap = XSize - 2;
+			for (x = 0; x < cap; x++) {
+				Data[y * RowWidth + x] = Data[(y-1)*RowWidth + x ];
+			}
+			
+			x = XSize -1;
+			y = ZSize -1;
+			Data[y * RowWidth + x] = Data[(y-1)*RowWidth + x - 1 ];
 		}
 		
 	}

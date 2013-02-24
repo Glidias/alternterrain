@@ -25,7 +25,7 @@ package alternterrainxtras.util
 		public var terrainParticleMode:int = ROLL;
 		
 		public var terrainCircleSize:Number  = 100.0;
-		public var  terrainRandomSeed:int = 0;
+		public var terrainRandomSeed:int = 0;
 		public var roughness:Number = 1.0;
 		public var steps:int = 1;
 		

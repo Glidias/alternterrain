@@ -82,8 +82,8 @@ package atregen
 		private var imageFileExtsDesc:String = "*.jpg;*.jpeg;*.png;*.data";
 		
 		// todo: provide support for models!
-		private var elevFileExts:String = "*.jpg;*.jpeg;*.png;*.data;";
-		private var elevFileExtsDesc:String = "*.jpg;*.jpeg;*.png;*.data;";
+		private var elevFileExts:String = "*.jpg;*.jpeg;*.png;*.data;*.hmi;";
+		private var elevFileExtsDesc:String = "*.jpg;*.jpeg;*.png;*.data;*.hmi;";
 		
 		private var _singleFileRef:FileReference;
 		private var _stats:Stats;
@@ -849,6 +849,7 @@ package atregen
 					hm.RowWidth = hm.XSize = hm.ZSize =  divisorTiles + 1;
 					hm.XOrigin = val.XOrigin + startX;
 					hm.ZOrigin = val.ZOrigin  +startY;
+
 
 					for (y = startY; y < limitY; y++) {
 						for (x = startX; x < limitX; x++) {

@@ -4,12 +4,12 @@
   <output>
     <movie outputType="Application" />
     <movie input="" />
-    <movie path="bin\Terrain_example.swf" />
-    <movie fps="60" />
+    <movie path="bin\expander_example\expander.swf" />
+    <movie fps="30" />
     <movie width="800" />
     <movie height="600" />
-    <movie version="11" />
-    <movie minorVersion="0" />
+    <movie version="10" />
+    <movie minorVersion="1" />
     <movie platform="Flash Player" />
     <movie background="#FFFFFF" />
   </output>
@@ -40,7 +40,7 @@
     <option linkReport="" />
     <option loadExterns="" />
     <option staticLinkRSL="True" />
-    <option additional="-swf-version=13" />
+    <option additional="" />
     <option compilerConstants="" />
     <option minorVersion="" />
   </build>
@@ -50,15 +50,9 @@
   </includeLibraries>
   <!-- SWC Libraries -->
   <libraryPaths>
-    <element path="lib\ds_release_alchemy.swc" />
-    <element path="lib\MinimalComps_0_9_10.swc" />
-    <element path="lib\FCSS-v1.1.0.swc" />
-    <element path="lib\framework.swc" />
     <element path="lib\Progression4.swc" />
-    <element path="lib\MinimalComps_0_9_6.swc" />
-    <element path="lib\v8\Alternativa3D.swc" />
+    <element path="lib\marchingsquares.swc" />
     <element path="lib\Stats.swc" />
-    <element path="lib\Alternativa3D.swc" />
   </libraryPaths>
   <!-- External Libraries -->
   <externalLibraryPaths>
@@ -78,7 +72,7 @@
   </library>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>
-    <compile path="src\examples\terrainprocessor\ExampleTerrainProcessor.as" />
+    <compile path="src\terraingen\expander\ProceduralExpansion.as" />
   </compileTargets>
   <!-- Paths to exclude from the Project Explorer tree -->
   <hiddenPaths>

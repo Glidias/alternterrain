@@ -84,10 +84,10 @@ package examples
 			filterFault.setupHeights(data, vAcross, vAcross);
 			filterFault.maxDisp = 120;
 			filterFault.minDisp = -120;
-			filterFault.terrainWaveSize = 3;
+			filterFault.terrainWaveSize = 4;
 			filterFault.terrainRandomSeed = Math.random() * 99999;
 			filterFault.terrainFunction = TerrainProcesses.SIN;
-			filterFault.terrainIterateFault(33);
+			//filterFault.terrainIterateFault(33);
 			
 			filterNoise.setupHeights(data, vAcross, vAcross);
 			filterNoise.maxDisp = 512;

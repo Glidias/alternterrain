@@ -16,14 +16,14 @@
     </define>
     <define append="true">
       <name>CONFIG::timeStamp</name>
-      <value>'2/21/2013'</value>
+      <value>'23/2/2013'</value>
     </define>
     <optimize>true</optimize>
     <omit-trace-statements>true</omit-trace-statements>
     <verbose-stacktraces>false</verbose-stacktraces>
     <source-path append="true">
       <path-element>D:\Git\alternterrain\src</path-element>
-      <path-element>D:\Program Files\FlashDevelop\Library\AS3\classes</path-element>
+      <path-element>D:\Program Files (x86)\FlashDevelop\Library\AS3\classes</path-element>
     </source-path>
     <library-path append="true">
       <path-element>D:\Git\alternterrain\lib\Progression4.swc</path-element>
@@ -32,7 +32,7 @@
     </library-path>
   </compiler>
   <file-specs>
-    <path-element>D:\Git\alternterrain\src\examples\TestTerrainFilters.as</path-element>
+    <path-element>D:\Git\alternterrain\src\examples\terrainprocessor\ExampleTerrainProcessor.as</path-element>
   </file-specs>
   <default-background-color>#FFFFFF</default-background-color>
   <default-frame-rate>60</default-frame-rate>
