@@ -81,7 +81,7 @@ package atregen
 		private var imageFileExts:String = "*.jpg;*.jpeg;*.png;*.data";
 		private var imageFileExtsDesc:String = "*.jpg;*.jpeg;*.png;*.data";
 		
-		// todo: provide support for models!
+
 		private var elevFileExts:String = "*.jpg;*.jpeg;*.png;*.data;*.hmi;";
 		private var elevFileExtsDesc:String = "*.jpg;*.jpeg;*.png;*.data;*.hmi;";
 		
@@ -394,14 +394,14 @@ package atregen
 		
 		private function pushNormMap(hm:HeightMapInfo, location:Point=null):void {
 			
-			var tempData:BitmapData = getHeightBitmapData(hm);
+			//var tempData:BitmapData = getHeightBitmapData(hm);
 			
 			var normalMapper:PlanarDispToNormConverter = new PlanarDispToNormConverter();
-			//normalMapper.heightMap = hm;
-			normalMapper.setDisplacementMapData(tempData);
+			normalMapper.heightMap = hm;
+			//normalMapper.setDisplacementMapData(tempData);
 			normalMapper.setDirection("z");
 			//normalMapper.heightMapMultiplier = 1 / 128;
-			normalMapper.setAmplitude(_numericAmpl.value);
+			normalMapper.setAmplitude(1);
 			
 		
 			var normalMap:Bitmap = normalMapper.convertToNormalMap();
@@ -412,7 +412,7 @@ package atregen
 			
 			pushBitmapData(filename, normalMap.bitmapData, false);
 			
-			tempData.dispose();
+			//tempData.dispose();
 		}
 		
 		
@@ -487,7 +487,6 @@ package atregen
 			
 		}
 		
-		// todo:
 		private function splitSrcBytes(srcData:ByteArray, grayscale:Boolean):void 
 		{
 			var divisorTiles:int = Math.pow(2, _numericPageSize.value);
@@ -909,7 +908,6 @@ package atregen
 			}
 			else if (ext === "data") {
 				fileRef.data.uncompress();
-				
 				notifyMapLoadDone();
 			}
 			else {
@@ -964,10 +962,6 @@ package atregen
 		
 		private function onSingleFileLoaded(e:Event):void 
 		{
-			
-			
-			
-			var tilesAcross:int;
 			//var bitmapData:BitmapData = new BitmapData(tilesAcross+1, tilesAcross+1, false, 0);
 			//bitmapData.perlinNoise(256, 256, 8, 211, false, true, 7, true);
 	
@@ -975,50 +969,92 @@ package atregen
 		
 		//	/*
 		
+		
+			var tilesAcross:int;
+			var heightMap:HeightMapInfo;
 			
 			var bytes:ByteArray = _singleFileRef.data;
-			tilesAcross = Math.sqrt(bytes.length);
+			var ext:String = _singleFileRef.name.split(".").pop();
 			
-			
-			if ( !QuadCornerData.isBase2(tilesAcross)) {
-				
-				bytes.uncompress();
+			if (ext === "data") {
+				var potentialMaxHeight:Number;
 				tilesAcross = Math.sqrt(bytes.length);
-				if (!QuadCornerData.isBase2(tilesAcross)) throw new Error("Failed to get base2 size of heightmap tiles:!");
-			}
+				
+				if ( !QuadCornerData.isBase2(tilesAcross)) {
+					
+					bytes.uncompress();
+					tilesAcross = Math.sqrt(bytes.length);
+					if (!QuadCornerData.isBase2(tilesAcross)) throw new Error("Failed to get base2 size of heightmap tiles:!");
+				}
+				
+				var mult:Number = _numericAmpl.value * ( _numericAmplAcross.value != 0 ? tilesAcross / _numericAmplAcross.value : 1 );
+				potentialMaxHeight =  _numericLowestHeight.value + mult * 255;
+				if ( potentialMaxHeight > MAX_HEIGHT) {
+					_progressLabel.text = "Heightmap loading potentially exceeds MAX_HEIGHT value of: " + MAX_HEIGHT + ". Please try again with different settings.";
+					return;
+				}
 			
-			var mult:Number = _numericAmpl.value * ( _numericAmplAcross.value != 0 ? tilesAcross / _numericAmplAcross.value : 1 );
-			var potentialMaxHeight:Number = _numericLowestHeight.value + mult * 255;
-			if ( potentialMaxHeight > MAX_HEIGHT) {
-				_progressLabel.text = "Heightmap loading potentially exceeds MAX_HEIGHT value of: " + MAX_HEIGHT + ". Please try again with different settings.";
-				return;
+				if (potentialMaxHeight > _highestPossibleHeight) _highestPossibleHeight = potentialMaxHeight;
+				// TODO: store lowestPossibleHeight as well
+				
+				lbl_hmSize.text = tilesAcross + " tiles across.";
+		
+				heightMap = HeightMapInfo.createFromByteArray(bytes, tilesAcross, 0, 0, mult, _numericLowestHeight.value); 
+				finaliseHeightMap(heightMap);
+			}
+			else if (ext === "hmi") {
+				bytes.uncompress();
+				heightMap = new HeightMapInfo();
+				heightMap.readExternal(bytes);
+				tilesAcross = heightMap.RowWidth - 1;
+				
+				finaliseHeightMap(heightMap);
+				
+				
+			}
+			else {   // assume image
+				var loader:Loader = new Loader();
+				loader.contentLoaderInfo.addEventListener(Event.COMPLETE, onSingleFileImgLoaded);
 			}
 		
-			if (potentialMaxHeight > _highestPossibleHeight) _highestPossibleHeight = potentialMaxHeight;
-			// TODO: store lowestPossibleHeight as well
 			
-			
-			lbl_hmSize.text = tilesAcross + " tiles across.";
-	
-			var heightMap:HeightMapInfo = HeightMapInfo.createFromByteArray(bytes, tilesAcross, 0, 0, mult, _numericLowestHeight.value); 
-
-			//heightMap = HeightMapInfo.createFromBmpData( bitmapData, 0, 0, 128, 0);
-			if (cbox_boxSmoothing.selectedIndex > 0) heightMap.BoxFilterHeightMap( cbox_boxSmoothing.selectedIndex < 2 );  
-			
-			///*
-			
-			_numericPageSize.maximum = Math.round( Math.log( tilesAcross) * Math.LOG2E );
-			setValPageSize(_numericPageSize.value);
-		
-			// TODO: support grids of multiple heightmaps
-			_heightMaps[0] = heightMap;
-			
-			optionsHolder.visible = true;
-			_progressLabel.text = "Done.      Potential maximum height of: " + potentialMaxHeight;
-			_progressBar.value = 1;
 			
 		}
 		
+		private function onSingleFileImgLoaded(e:Event):void 
+		{
+			
+			(e.currentTarget as IEventDispatcher).removeEventListener(e.type, onSingleFileImgLoaded);
+			var bmpData:BitmapData = ((e.currentTarget as LoaderInfo).content as Bitmap).bitmapData;
+			
+			var tilesAcross:int = bmpData.width;
+			var mult:Number = _numericAmpl.value * ( _numericAmplAcross.value != 0 ? tilesAcross / _numericAmplAcross.value : 1 );
+				var potentialMaxHeight:int =  _numericLowestHeight.value + mult * 255;
+				if ( potentialMaxHeight > MAX_HEIGHT) {
+					_progressLabel.text = "Heightmap loading potentially exceeds MAX_HEIGHT value of: " + MAX_HEIGHT + ". Please try again with different settings.";
+					return;
+				}
+			
+			var hm:HeightMapInfo = HeightMapInfo.createFromBmpData(bmpData, 0, 0, mult, _numericLowestHeight.value);
+			
+			finaliseHeightMap(hm);
+		}
+		
+		private function finaliseHeightMap(heightmap:HeightMapInfo):void {
+			_numericPageSize.maximum = Math.round( Math.log( heightmap.RowWidth-1) * Math.LOG2E );
+			setValPageSize(_numericPageSize.value);
+		
+			// TODO: support grids of multiple heightmaps
+			
+			if (cbox_boxSmoothing.selectedIndex > 0) heightmap.BoxFilterHeightMap( cbox_boxSmoothing.selectedIndex < 2 );  
+			_heightMaps[0] = heightmap;
+			
+			optionsHolder.visible = true;
+			_progressLabel.text = "Done.";
+			_progressBar.value = 1;
+		}
+		
+	
 		private function installHeightMap(heightMap:HeightMapInfo):void {
 			installer = new QuadPageInstaller();
 			_progressLabel.text = "Installing heightmap...";

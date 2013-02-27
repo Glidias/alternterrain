@@ -319,19 +319,19 @@ package alternterrain.core
 			var vertsX:int = bWidth = bmpData.width;
 			var vertsY:int = bHeight = bmpData.height;
 			if ( (vertsX & 1) != 1) {
-				throw new Error("Must be odd number of vertices along x dir!"); 
-				//vertsX += 1;
+				//throw new Error("Must be odd number of vertices along x dir!"); 
+				vertsX += 1;
 			}
 			if ( (vertsY & 1) != 1) {
-				throw new Error("Must be odd number of vertices along y dir!"); 
-				//vertsY += 1;
+				//throw new Error("Must be odd number of vertices along y dir!"); 
+				vertsY += 1;
 			}
 			
 			RowWidth = vertsX;
 			XSize = RowWidth;
 			ZSize = vertsY;
 			
-			var data:Vector.<int> =  new Vector.<int>( (vertsX+1) * (vertsY+1), true);
+			var data:Vector.<int> =  new Vector.<int>( (vertsX) * (vertsY), true);
 			var by:int = vertsY;
 			var bx:int = vertsX;
 			

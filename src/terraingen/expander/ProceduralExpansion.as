@@ -435,18 +435,15 @@ package terraingen.expander
 					for (var u:int = 0; u < uLen; u++) {
 						var samplePhase:SamplePhase = _samplePhases[u];
 					
-						/**
-						if (samplePhase.is3x3) {
-							_terrainProcessor.process3By3Sample(_sample3x3, samplePhase.phase);
-						}
-						else {
-							_terrainProcessor.process1By1Sample(_sample1x1, samplePhase.phase);
-						}*/
+						
 						if (pLen != 0) {
 							_serialList.addCommand( new Func(setTerrainProcessesData , [samplePhase.is3x3 ? _sample3x3 : _sample1x1], null, "setTerrainProcessesData" ) );
 						}
+						///*
 						_serialList.addCommand( (samplePhase.is3x3 ?  new Func( _terrainProcessor.process3By3Sample, [_sample3x3, samplePhase.phase], null, "process3By3Sample" ) : new Func( _terrainProcessor.process1By1Sample, [_sample1x1, samplePhase.phase], null, "process1By1Sample" ) ),
-							new Wait(.3));
+							new Wait(.3)
+							);
+							//*/
 					}
 					_serialList.addCommand( new Func(copyBackSampledData, [x,y,samplesAcrossX, samplesAcrossY], null, "copyBackSampledData:"+x+","+y) );
 				}
