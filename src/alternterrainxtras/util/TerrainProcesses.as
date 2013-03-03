@@ -8,7 +8,7 @@ package alternterrainxtras.util
 	 * Useful for modifying terrain heights, adding additional detail, noise, smoothing, etc. Based on code found in terrain.cpp.
 	 * @author Glenn Ko
 	 */
-	public class TerrainProcesses 
+	public class TerrainProcesses implements ITerrainProcess
 	{
 		
 		public var terrainHeights:Vector.<int>;
@@ -104,18 +104,22 @@ package alternterrainxtras.util
 			}
 		}
 		
-		public function terrainIterateCircles( numIterations:int):void {
+		public function terrainIterateCircles(numIterations:int, xOff:int = 0, yOff:int = 0, w:int = 0, h:int = 0 ):void {
 
 			var dispAux:Number;
-			var i:int,j:int,k:int,halfX:int,halfZ:int,dispSign:int;
+			var i:int,j:int,k:int,dispSign:int;
 			var x:Number,z:Number,r:Number,pd:Number;
 
-			halfX = terrainGridWidth / 2;
-			halfZ = terrainGridLength / 2;
+			w = w != 0 ? w : terrainGridWidth;
+			h = h != 0 ? h : terrainGridLength;
+			
+			iterationsDone = 0;
+			
+		
 			for (k = 0; k < numIterations;k++) {
 
-				z = Math.random() * (terrainGridWidth);
-				x = Math.random() *( terrainGridLength);
+				z = xOff + Math.random() * w;
+				x =  yOff + Math.random() * h;
 				iterationsDone++;
 				if (iterationsDone < itMinDisp)
 					disp = maxDisp + (iterationsDone/(itMinDisp+0.0))* (minDisp - maxDisp);
@@ -205,6 +209,130 @@ package alternterrainxtras.util
 			}
 
 		}
+		
+				public function BoxFilterHeightMap(
+                       smoothEdges:Boolean = true, xStart:int=0, zStart:int=0, w:int = 0,h:int=0 ):void
+{
+  //     width: Width of the height map in bytes
+  //    height: Height of the height map in bytes
+  // heightMap: Pointer to your height map data
+  
+  // Temporary values for traversing single dimensional arrays
+  var x:int = xStart;
+  var z:int = zStart;
+  var width:int = terrainGridWidth;
+  var height:int = terrainGridLength;
+  
+  w = w != 0 ? w : width;
+  h = h != 0 ? h : height;
+  
+  var  widthClamp:int = (smoothEdges) ?  w : w  - 1;
+  var heightClamp:int = (smoothEdges) ? h : h - 1;
+  
+  // [Optimization] Calculate bounds ahead of time
+  var bounds:int = width * height;
+  
+  // Validate requirements
+ 
+  
+  // Allocate the result
+ 
+  var heightMap:Vector.<int> = terrainHeights;
+   var result:Vector.<int> = heightMap.concat();  // this should be a float
+  // Make sure memory was allocated
+  if (!result)
+    return;
+  
+  for (z = (smoothEdges) ? 0 : 1; z < heightClamp; ++z)
+  {
+    for (x = (smoothEdges) ? 0 : 1; x < widthClamp; ++x)
+    {
+      // Sample a 3x3 filtering grid based on surrounding neighbors
+      
+      var value:Number = 0.0;
+      var cellAverage:Number = 1.0;
+      
+      // Sample top row
+      
+      if (((x - 1) + (z - 1) * width) >= 0 &&
+          ((x - 1) + (z - 1) * width) < bounds)
+      {
+        value += heightMap[(x - 1) + (z - 1) * width];
+        ++cellAverage;
+      }
+      
+      if (((x - 0) + (z - 1) * width) >= 0 &&
+          ((x - 0) + (z - 1) * width) < bounds)
+      {
+        value += heightMap[(x    ) + (z - 1) * width];
+        ++cellAverage;
+      }
+      
+      if (((x + 1) + (z - 1) * width) >= 0 &&
+          ((x + 1) + (z - 1) * width) < bounds)
+      {
+        value += heightMap[(x + 1) + (z - 1) * width];
+        ++cellAverage;
+      }
+      
+      // Sample middle row
+      
+      if (((x - 1) + (z - 0) * width) >= 0 &&
+          ((x - 1) + (z - 0) * width) < bounds)
+      {
+        value += heightMap[(x - 1) + (z    ) * width];
+        ++cellAverage;
+      }
+      
+      // Sample center point (will always be in bounds)
+      value += heightMap[x + z * width];
+      
+      if (((x + 1) + (z - 0) * width) >= 0 &&
+          ((x + 1) + (z - 0) * width) < bounds)
+      {
+        value += heightMap[(x + 1) + (z    ) * width];
+        ++cellAverage;
+      }
+      
+      // Sample bottom row
+      
+      if (((x - 1) + (z + 1) * width) >= 0 &&
+          ((x - 1) + (z + 1) * width) < bounds)
+      {
+        value += heightMap[(x - 1) + (z + 1) * width];
+        ++cellAverage;
+      }
+      
+      if (((x - 0) + (z + 1) * width) >= 0 &&
+          ((x - 0) + (z + 1) * width) < bounds)
+      {
+        value += heightMap[(x    ) + (z + 1) * width];
+        ++cellAverage;
+      }
+      
+      if (((x + 1) + (z + 1) * width) >= 0 &&
+          ((x + 1) + (z + 1) * width) < bounds)
+      {
+        value += heightMap[(x + 1) + (z + 1) * width];
+        ++cellAverage;
+      }
+      
+      // Store the result
+      result[x + z * width] = value / cellAverage;
+    }
+  }
+  
+
+	  
+	  // Store the new one
+	   for (z = (smoothEdges) ? 0 : 1; z < heightClamp; z++)
+		{
+			for (x = (smoothEdges) ? 0 : 1; x < widthClamp; x++) {
+				 heightMap[x+z*width] =  result[x + z * width];
+			}
+		}
+	
+}
 		
 		private function terrainHeight( x:int,z:int):int {
 			if (x > terrainGridWidth-1)
@@ -385,35 +513,52 @@ package alternterrainxtras.util
 		 * 
 		 * @param	k	Smoothness ratio betwene 0-1. A value of 1 would flatten terrain. Smaller numbers indiciate smoothing amount.
 		 */
-		public function terrainSmooth(k:Number):void {
+		public function terrainSmooth(k:Number, x:int = 0, y:int = 0, w:int = 0, h:int=0 ):void {
 
 			var i:int;
 			var j:int;
+			
+			w = w != 0 ? w : terrainGridWidth;
+			h = h != 0 ? h : terrainGridLength;
 
-			for(i=0;i<terrainGridLength;i++)
-				for(j=1;j<terrainGridWidth;j++)
+			for(i=0+y;i<h+y;i++)
+				for(j=1+x;j<w+x;j++)
 					terrainHeights[i*terrainGridWidth + j] =
 						terrainHeights[i*terrainGridWidth + j] * (1-k) + 
 						terrainHeights[i*terrainGridWidth + j-1] * k;
-			for(i=1;i<terrainGridLength;i++)
-				for(j=0;j<terrainGridWidth;j++)
+			for(i=1+y;i<h+y;i++)
+				for(j=0+x;j<w+x;j++)
 					terrainHeights[i*terrainGridWidth + j] =
 						terrainHeights[i*terrainGridWidth + j] * (1-k) + 
 						terrainHeights[(i-1)*terrainGridWidth + j] * k;
-			for(i=0; i<terrainGridLength; i++)
-				for(j=terrainGridWidth-2;j>-1;j--)
+			for(i=0+y; i<h+y; i++)
+				for(j=w-2+x;j>-1+x;j--)
 					terrainHeights[i*terrainGridWidth + j] =
 						terrainHeights[i*terrainGridWidth + j] * (1-k) + 
 						terrainHeights[i * terrainGridWidth + j + 1] * k;
 						
-			for(i=terrainGridLength-2;i<-1;i--)
-				for(j=0;j<terrainGridWidth;j++)
+			for(i=h-2 + y;i<-1+y;i--)
+				for(j=0+x;j<w+x;j++)
 					terrainHeights[i*terrainGridWidth + j] =
 						terrainHeights[i*terrainGridWidth + j] * (1-k) + 
 						terrainHeights[(i+1)*terrainGridWidth + j] * k;
 
 			//if (terrainNormals != NULL)
 				//terrainComputeNormals();
+		}
+		
+		public function adjustHeights(amount:int, x:int = 0, y:int = 0, w:int = 0, h:int=0 ):void 
+		{
+			w = w != 0 ? w + x :  x + terrainGridWidth;
+			h = h != 0 ? h + y : y +  terrainGridLength;
+			var xStart:int = x;
+			var yStart:int = y;
+			for (y = yStart; y < h; y++) {
+				for (x =xStart; x < w; x++) {
+					terrainHeights[y * terrainGridWidth + x] += amount;
+				}
+			}
+			
 		}
 		
 	}

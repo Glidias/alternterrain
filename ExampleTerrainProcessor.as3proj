@@ -4,7 +4,7 @@
   <output>
     <movie outputType="Application" />
     <movie input="" />
-    <movie path="bin\Terrain_example.swf" />
+    <movie path="bin\expander_example\process.swf" />
     <movie fps="60" />
     <movie width="800" />
     <movie height="600" />
@@ -78,7 +78,7 @@
   </library>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>
-    <compile path="src\examples\TestTerrainFilters.as" />
+    <compile path="src\examples\terrainprocessor\ExampleTerrainProcessor.as" />
   </compileTargets>
   <!-- Paths to exclude from the Project Explorer tree -->
   <hiddenPaths>

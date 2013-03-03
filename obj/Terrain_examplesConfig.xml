@@ -16,7 +16,7 @@
     </define>
     <define append="true">
       <name>CONFIG::timeStamp</name>
-      <value>'23/2/2013'</value>
+      <value>'3/3/2013'</value>
     </define>
     <optimize>true</optimize>
     <omit-trace-statements>true</omit-trace-statements>
@@ -32,7 +32,7 @@
     </library-path>
   </compiler>
   <file-specs>
-    <path-element>D:\Git\alternterrain\src\examples\terrainprocessor\ExampleTerrainProcessor.as</path-element>
+    <path-element>D:\Git\alternterrain\src\examples\TestTerrainFilters.as</path-element>
   </file-specs>
   <default-background-color>#FFFFFF</default-background-color>
   <default-frame-rate>60</default-frame-rate>

@@ -212,7 +212,7 @@ package alternterrain.core
 			result.ZSize= ZSize;
 			result.RowWidth= RowWidth;
 			result.Scale = Scale;
-			result.Data = Data;
+			result.Data = Data.concat();
 			return result;
 		}
 		

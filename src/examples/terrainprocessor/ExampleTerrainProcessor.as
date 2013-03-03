@@ -1,6 +1,7 @@
 package examples.terrainprocessor 
 {
 	import alternterrain.core.HeightMapInfo;
+	import alternterrainxtras.util.ITerrainProcess;
 	import alternterrainxtras.util.TerrainProcesses;
 	import flash.display.Sprite;
 	import terraingen.expander.IHeightTerrainProcessor;
@@ -15,13 +16,16 @@ package examples.terrainprocessor
 		
 		private var filterNoise:TerrainProcesses = new TerrainProcesses();  // frequency noise that can be seamless with shift x/y offsets
 		
-	//	private var filterFault:TerrainProcesses = new TerrainProcesses();  // can't seam this!
+		private var filterFault:TerrainProcesses = new TerrainProcesses();  // can't seam this!
 		
 		private var filterSmooth:TerrainProcesses = new TerrainProcesses();
 		
 		//private var filterPerlinNoise:TerrainProcesses = new TerrainProcesses();   // // FLash's perlinNoise noise that  can be seamless with shift x/y offsets
 		
-		private var _processes:Vector.<TerrainProcesses> = new <TerrainProcesses>[filterCircles, filterNoise, filterSmooth];
+		
+		private var _processes:Vector.<ITerrainProcess> = new <ITerrainProcess>[filterCircles, filterNoise, filterSmooth, filterFault];
+		
+		
 		
 		private var seed:int = 93992;  // set this to a random number.
 		
@@ -35,27 +39,42 @@ package examples.terrainprocessor
 			filterNoise.terrainRandomSeed = seed;
 			filterNoise.maxDisp = 512;
 			filterNoise.minDisp = -512;
+			
+			filterFault.maxDisp = 120;
+			filterFault.minDisp = -120;
+			filterFault.terrainWaveSize = 4;
+			filterFault.terrainRandomSeed =  seed;
+			filterFault.terrainFunction = TerrainProcesses.SIN;
 		}
 		
 		/* INTERFACE terraingen.expander.IHeightTerrainProcessable */
 		
 		public function process3By3Sample(hm:HeightMapInfo, phase:int):void 
 		{
-			// TODO: sample centered region  of heightmap only!
-			filterCircles.terrainIterateCircles(32);
+			var w:int = hm.XSize  / 3;
+			//filterSmooth.adjustHeights(300, w, w, w, w);	
+			filterCircles.terrainIterateCircles(32, w, w, w, w);
+		//	filterFault.terrainIterateFault(32);
+			
 		}
 		
 		public function process1By1Sample(hm:HeightMapInfo, phase:int):void 
 		{
 			// TODO: need to set offset of noise to match heightmap info!
-			filterNoise.terrainApplyNoise(20, 4, 2.8, .65);
-			
-			filterSmooth.terrainSmooth(.15);
+			filterNoise.terrainApplyNoise(20, 4, 2.8, .65);  // TODO: stitch noise with corrct phase offsets from heightmapInfo xorg/zorg
+	
+		}
+		
+		// Usually, your smoothing operations go here
+		public function postProcess3By3Sample(hm:HeightMapInfo):void {
+			var w:int = hm.XSize  / 3; // get center sample size from  3x3 heightmap info
+			var s:int = 4;  // smooth across a certain number of tiles between edges. (recommended >=4 ie. as much as possible to avoid seams )
+			filterSmooth.terrainSmooth(.5, w-s,w-s,w+s*2,w+s*2);
 		}
 		
 		/* INTERFACE terraingen.expander.IHeightTerrainProcessable */
 		
-		public function getProcesses():Vector.<TerrainProcesses> 
+		public function getProcesses():Vector.<ITerrainProcess> 
 		{
 			return _processes;
 		}
@@ -64,7 +83,7 @@ package examples.terrainprocessor
 		
 		public function getSamplePhases():Vector.<Boolean> 
 		{
-			return null;
+			return new <Boolean>[true, false];
 		}
 		
 		public function get sampleSize():int {

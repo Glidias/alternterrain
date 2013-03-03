@@ -2,7 +2,7 @@ package terraingen.expander
 {
 	import alternterrain.core.HeightMapInfo;
 	import alternterrain.util.BitmapDataReadWrite;
-	import alternterrainxtras.util.TerrainProcesses;
+	import alternterrainxtras.util.ITerrainProcess;
 	import com.bit101.components.CheckBox;
 	import com.bit101.components.ComboBox;
 	import com.bit101.components.HBox;
@@ -11,6 +11,7 @@ package terraingen.expander
 	import com.bit101.components.ProgressBar;
 	import com.bit101.components.PushButton;
 	import com.bit101.components.VBox;
+	import com.tartiflop.PlanarDispToNormConverter;
 	import flash.display.Bitmap;
 	import flash.display.BitmapData;
 	import flash.display.DisplayObject;
@@ -20,6 +21,7 @@ package terraingen.expander
 	import flash.events.Event;
 	import flash.events.IEventDispatcher;
 	import flash.events.IOErrorEvent;
+	import flash.filters.BlurFilter;
 	import flash.geom.Matrix;
 	import flash.geom.Point;
 	import flash.geom.Rectangle;
@@ -74,6 +76,7 @@ package terraingen.expander
 		private var _ext:String;
 		private var _serialList:SerialList;
 		private var _cbLoadSingleHeightmap:CheckBox;
+		private var _cbBoxFilter:CheckBox;
 		private var _terrainName:String;
 		
 		private var _bitmapDataSamples:Vector.<BitmapData>;
@@ -90,12 +93,14 @@ package terraingen.expander
 		
 		private var _pageBmpdata:BitmapData;
 		private var _sampleSize:int;
-		private var _terrainProcesses:Vector.<TerrainProcesses>;
+		private var _terrainProcesses:Vector.<ITerrainProcess>;
 		private var _samplePhases:Vector.<SamplePhase>;
 		
 		private var _sample3x3:HeightMapInfo;
 		private var _sample1x1:HeightMapInfo;
 		private var _stats:Stats;
+		private var _useBoxFilter:Boolean;
+		private var _heightMapClone:HeightMapInfo;
 	
 
 		public function ProceduralExpansion() 
@@ -138,6 +143,9 @@ package terraingen.expander
 			_numericHeightMult = new NumericStepper(hLayout, 0, 0);
 			_numericHeightMult.value = 128;
 			
+			_cbBoxFilter = new CheckBox(uiLayout, 0, 0, "Box filter loaded heightmaps");
+			_cbBoxFilter.selected = true;
+			
 			new Label(uiLayout, 0, 0, "");
 			
 			hLayout = new HBox(uiLayout);
@@ -161,6 +169,8 @@ package terraingen.expander
 			_numericPageSize = new NumericStepper(hLayout, 0, 0);
 			_numericPageSize.value = 1024;
 
+
+			
 			
 			_cbLoadSingleHeightmap = new CheckBox(uiLayout, 0, 0, "Load as single heightmap");
 			_cbLoadSingleHeightmap.selected = true;
@@ -187,7 +197,7 @@ package terraingen.expander
 			_pageSize = _numericPageSize.value;
 			_heightMult = _numericHeightMult.value;
 			_lowestHeight = _numericLowestHeight.value;
-			
+			_useBoxFilter = _cbBoxFilter.selected;
 			
 			
 			var hLayout:HBox = new HBox(this);
@@ -311,7 +321,7 @@ package terraingen.expander
 			_pageBmpdata = new BitmapData(_pageSize, _pageSize, false, 0);
 			
 			_sampleSize = _terrainProcessor.sampleSize;
-			_terrainProcesses = _terrainProcessor.getProcesses();
+			_terrainProcesses = _terrainProcessor.getProcesses() || new Vector.<ITerrainProcess>();
 			_samplePhases = getSamplePhases( _terrainProcessor.getSamplePhases() );
 			
 			_sample3x3 = new HeightMapInfo();
@@ -346,10 +356,11 @@ package terraingen.expander
 					// perform loading of each bitmapdata sample, to push into single heightmap
 					_bitmapDataSamples = new Vector.<BitmapData>(_pagesAcrossX * _pagesAcrossY, true);
 					
-					
 					_serialList.addCommand( new Func(injectBitmapdataSamples) );
 					_serialList.addCommand( new Func(disposeBitmapDataSamples) );
+					
 				}
+				if (_useBoxFilter) _serialList.addCommand( new Func(_heightMap.BoxFilterHeightMap), new Wait(.3) );
 				
 				injectSampleProcessesFromHeightmap();
 				_serialList.addCommand( new Wait(.5), new Func(finaliseHeightMap) );
@@ -382,6 +393,21 @@ package terraingen.expander
 		
 		private function finaliseHeightMap():void 
 		{
+			/*
+			var normalMapper:PlanarDispToNormConverter = new PlanarDispToNormConverter();
+			normalMapper.heightMap = _heightMap;
+			//normalMapper.setDisplacementMapData(tempData);
+			normalMapper.setDirection("z");
+			//normalMapper.heightMapMultiplier = 1 / 128;
+			normalMapper.setAmplitude(1);
+			
+		
+			var normalMap:Bitmap = normalMapper.convertToNormalMap();
+			//normalMap.bitmapData.applyFilter(normalMap.bitmapData, normalMap.bitmapData.rect, new Point(), new BlurFilter(3, 3, 4) );
+			addChild(normalMap);
+			return;
+			*/
+			
 			_progressLabel.text = "Preparing save file...Please wait...";
 			_heightMap.paddEdgeDataValues();
 			var byte:ByteArray = new ByteArray();
@@ -420,15 +446,12 @@ package terraingen.expander
 			var samplesAcrossY:int = (_heightMap.ZSize - 1) / _sampleSize;
 			
 			var uLen:int = _samplePhases.length;
-			var pLen:int = _terrainProcesses ? _terrainProcesses.length : 0;
+			var pLen:int =  _terrainProcesses.length ;
 			
 			for ( var y:int = 0; y < samplesAcrossY; y++) {
 				for (var x:int = 0; x < samplesAcrossX; x++) {
 					//_sample3x3.copyData(x * _sampleSize, y * _sampleSize, _sample3x3.XSize, _sample3x3.ZSize, _heightMap.Data);
 					//_sample1x1.copyData(x * _sampleSize, y * _sampleSize, _sample1x1.XSize, _sample1x1.ZSize, _heightMap.Data);
-					_serialList.addCommand( new Func(_sample3x3.copyData, [x * _sampleSize-_sampleSize, y * _sampleSize - _sampleSize, _sample3x3.XSize, _sample3x3.ZSize, _heightMap], null, "sample3x3.copyData" ) ,
-							new Func(_sample1x1.copyData, [x * _sampleSize, y * _sampleSize, _sample1x1.XSize, _sample1x1.ZSize, _heightMap], null, "sample1x1.copyData"),
-							new Wait(.3) );
 					
 							
 							
@@ -436,22 +459,71 @@ package terraingen.expander
 						var samplePhase:SamplePhase = _samplePhases[u];
 					
 						
-						if (pLen != 0) {
-							_serialList.addCommand( new Func(setTerrainProcessesData , [samplePhase.is3x3 ? _sample3x3 : _sample1x1], null, "setTerrainProcessesData" ) );
-						}
-						///*
-						_serialList.addCommand( (samplePhase.is3x3 ?  new Func( _terrainProcessor.process3By3Sample, [_sample3x3, samplePhase.phase], null, "process3By3Sample" ) : new Func( _terrainProcessor.process1By1Sample, [_sample1x1, samplePhase.phase], null, "process1By1Sample" ) ),
-							new Wait(.3)
+						//if (pLen != 0) {
+							_serialList.addCommand( new Func(setTerrainProcessesData , [x,y,samplePhase.is3x3 ? _sample3x3 : _sample1x1], null, "setTerrainProcessesData" ) );
+						//}
+						
+						if (samplePhase.is3x3) {
+							_serialList.addCommand(
+								new Func(_sample3x3.copyData, [x * _sampleSize-_sampleSize, y * _sampleSize - _sampleSize, _sample3x3.XSize, _sample3x3.ZSize, _heightMap], null, "sample3x3.copyData" ),
+								new Wait(.3),
+								new Func( _terrainProcessor.process3By3Sample, [_sample3x3, samplePhase.phase], null, "process3By3Sample" ) ,
+								new Wait(.3),
+								new Func(copyBackSampledData3x3, [x,y,samplesAcrossX, samplesAcrossY], null, "copyBackSampledData3x3:"+x+","+y)
 							);
-							//*/
+						}
+						else {
+							_serialList.addCommand(
+								new Func(_sample1x1.copyData, [x * _sampleSize, y * _sampleSize, _sample1x1.XSize, _sample1x1.ZSize, _heightMap], null, "sample1x1.copyData"),
+							    new Wait(.3),
+								new Func( _terrainProcessor.process1By1Sample, [_sample1x1, samplePhase.phase]) ,
+								new Wait(.3),
+								new Func(copyBackSampledData1x1, [x,y,samplesAcrossX, samplesAcrossY], null, "copyBackSampledData1x1:"+x+","+y)
+							);
+							
+						}
+						
+					
 					}
-					_serialList.addCommand( new Func(copyBackSampledData, [x,y,samplesAcrossX, samplesAcrossY], null, "copyBackSampledData:"+x+","+y) );
+					//_serialList.addCommand( new Func(copyBackSampledData, [x,y,samplesAcrossX, samplesAcrossY], null, "copyBackSampledData:"+x+","+y) );
+				}
+			}
+			
+			_serialList.addCommand( new Func(cloneHeightmapForPreprocessing) );
+			
+			// 3x3 POST PROCESSING operations useful for smoothing operations. It supplies the 3x3 heightmap as input, but updates 1x1 in the middle only.
+			for (  y = 0; y < samplesAcrossY; y++) {
+				for ( x = 0; x < samplesAcrossX; x++) {
+					
+					//if (pLen != 0) {
+						_serialList.addCommand( new Func(setTerrainProcessesData, [x,y, _sample3x3], null, "setTerrainProcessesData" ) );
+					//	}
+				
+					_serialList.addCommand(
+								new Func(copyDataForSample, [_sample3x3, x * _sampleSize-_sampleSize, y * _sampleSize - _sampleSize, _sample3x3.XSize, _sample3x3.ZSize, null, true], null, "sample3x3.copyData" ),
+								new Wait(.3),
+								new Func( _terrainProcessor.postProcess3By3Sample, [_sample3x3], null, "postProcess3By3Sample" ) ,
+								new Wait(.3),
+								new Func(copyBackSampledData1x1with3x3, [x,y,samplesAcrossX, samplesAcrossY], null, "postCopyBack:"+x+","+y)
+							);
+							
 				}
 			}
 		}
 		
-		private function setTerrainProcessesData(heightmap:HeightMapInfo):void 
+		private function copyDataForSample(sample:HeightMapInfo, xStart:int, yStart:int, width:int, height:int, hm:HeightMapInfo, useClone:Boolean=false):void {
+			hm = hm != null ? hm : !useClone ? _heightMap : _heightMapClone;
+			sample.copyData(xStart, yStart, width, height, hm);
+		}
+		
+		private function cloneHeightmapForPreprocessing():void {
+			_heightMapClone = _heightMap.clone();
+		}
+		
+		private function setTerrainProcessesData(x:int, y:int,heightmap:HeightMapInfo):void 
 		{
+			heightmap.XOrigin = x;
+			heightmap.ZOrigin = y;
 			var i:int = _terrainProcesses.length;
 			while (--i > -1) {
 				_terrainProcesses[i].setupHeights(heightmap.Data, heightmap.XSize, heightmap.ZSize);
@@ -459,21 +531,41 @@ package terraingen.expander
 		
 		}
 		
-		private function copyBackSampledData(x:int, y:int, xSamplesAcross:int, ySamplesAcross:int):void 
+		private function copyBackSampledData1x1(x:int, y:int, xSamplesAcross:int, ySamplesAcross:int):void 
 		{
 
+	
 			_heightMap.copyData( 0, 0, _sampleSize, _sampleSize, _sample1x1, x * _sampleSize, y * _sampleSize );
+			
+			
+		}
+		
+		private function copyBackSampledData1x1with3x3(x:int, y:int, xSamplesAcross:int, ySamplesAcross:int):void 
+		{
+		
+			var dx:int = x == 0 ? 1 :0;  // destx
+			var dy:int =  y == 0 ? 1 : 0;  // desty
+			_heightMap.copyData( _sampleSize, _sampleSize, _sampleSize, _sampleSize, _sample3x3, x*_sampleSize , y*_sampleSize);
+			
+		}
+		
+		private function copyBackSampledData3x3(x:int, y:int, xSamplesAcross:int, ySamplesAcross:int):void 
+		{
+
+			
 			
 			// for 3x3 sample
 			var dx:int = x == 0 ? 0 : x - 1;  // destx
 			var dy:int =  y == 0 ? 0 : y-1;  // desty
 			var dOffX:int =  x == 0 ? 1 : 0;
 			var dOffY:int = y == 0 ? 1 :0;
-			var ds:int = x == 0 || y == 0 || x >= (xSamplesAcross -2) || y >= (ySamplesAcross -2) ?  2 : 3;
-			
-			// TODO: FIX THIS!
-			_heightMap.copyData( dOffX*_sampleSize, dOffX*_sampleSize, _sampleSize*ds,  _sampleSize*ds, _sample3x3, dx*_sampleSize, dy*_sampleSize);
+			var dsX:int = x == 0 || x >= (xSamplesAcross -1)  ?  2 : 3;
+			var dsY:int = y == 0 || y >= (ySamplesAcross -1) ?  2 : 3;
+
+			_heightMap.copyData( dOffX*_sampleSize, dOffY*_sampleSize, _sampleSize*dsX,  _sampleSize*dsY, _sample3x3, dx*_sampleSize, dy*_sampleSize);
 		}
+		
+
 		
 		private function disposeBitmapDataSamples():void 
 		{
