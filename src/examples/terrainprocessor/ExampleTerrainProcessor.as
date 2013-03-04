@@ -33,12 +33,12 @@ package examples.terrainprocessor
 		{
 			filterCircles.terrainRandomSeed = seed;
 			filterCircles.terrainCircleSize = 64*64;
-			filterCircles.maxDisp = 500;
-			filterCircles.minDisp = -4500;
+			filterCircles.maxDisp = 900;
+			filterCircles.minDisp = -900;
 			
 			filterNoise.terrainRandomSeed = seed;
-			filterNoise.maxDisp = 512;
-			filterNoise.minDisp = -512;
+			filterNoise.maxDisp = 600;
+			filterNoise.minDisp = -600;
 			
 			filterFault.maxDisp = 120;
 			filterFault.minDisp = -120;
@@ -69,7 +69,7 @@ package examples.terrainprocessor
 		public function postProcess3By3Sample(hm:HeightMapInfo):void {
 			var w:int = hm.XSize  / 3; // get center sample size from  3x3 heightmap info
 			var s:int = 4;  // smooth across a certain number of tiles between edges. (recommended >=4 ie. as much as possible to avoid seams )
-			filterSmooth.terrainSmooth(.5, w-s,w-s,w+s*2,w+s*2);
+			filterSmooth.terrainSmooth(.15, w-s,w-s,w+s*2,w+s*2);
 		}
 		
 		/* INTERFACE terraingen.expander.IHeightTerrainProcessable */

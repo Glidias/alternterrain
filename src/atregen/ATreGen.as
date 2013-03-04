@@ -1000,12 +1000,14 @@ package atregen
 				lbl_hmSize.text = tilesAcross + " tiles across.";
 		
 				heightMap = HeightMapInfo.createFromByteArray(bytes, tilesAcross, 0, 0, mult, _numericLowestHeight.value); 
+				
 				finaliseHeightMap(heightMap);
 			}
 			else if (ext === "hmi") {
 				bytes.uncompress();
 				heightMap = new HeightMapInfo();
 				heightMap.readExternal(bytes);
+				
 				tilesAcross = heightMap.RowWidth - 1;
 				
 				finaliseHeightMap(heightMap);

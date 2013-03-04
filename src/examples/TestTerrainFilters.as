@@ -76,8 +76,8 @@ package examples
 			var data:Vector.<int> = new Vector.<int>(vAcross * vAcross, true);
 			filterCircles.setupHeights(data, vAcross, vAcross);
 			filterCircles.terrainCircleSize = 64*64;
-			filterCircles.maxDisp = 500;
-			filterCircles.minDisp = -4500;
+			filterCircles.maxDisp = 900;
+			filterCircles.minDisp = -900;
 			filterCircles.terrainRandomSeed = Math.random() * 99999;
 			filterCircles.terrainIterateCircles(32);
 			
@@ -90,8 +90,8 @@ package examples
 			//filterFault.terrainIterateFault(33);
 			
 			filterNoise.setupHeights(data, vAcross, vAcross);
-			filterNoise.maxDisp = 512;
-			filterNoise.minDisp = -512;
+			filterNoise.maxDisp = 600;
+			filterNoise.minDisp = -600;
 			filterNoise.terrainRandomSeed = Math.random() * 99999;
 			filterNoise.terrainApplyNoise(20, 4, 2.8, .65);
 			

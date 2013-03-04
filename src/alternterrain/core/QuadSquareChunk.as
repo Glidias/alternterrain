@@ -542,14 +542,14 @@ public	function UpdateAux(cd:QuadChunkCornerData, camera:Vector3D, CenterError:N
 	public function readExternal(input:IDataInput):void 
 	{
 	
-		///* #if positiveShortHeightsOnly
+		/* #if positiveShortHeightsOnly
 			MinY = input.readUnsignedShort();
 			MaxY = input.readUnsignedShort();
-		//*/
-		/* #else if positiveNegativeShortHeights
+		*/
+		///* #else if positiveNegativeShortHeights
 			MinY = input.readShort();
 			MaxY = input.readUnsignedShort();
-		#end if */
+		//#end if */
 		
 		error = input.readUnsignedShort();
 		input.readBoolean();  // todo: depeciate fully

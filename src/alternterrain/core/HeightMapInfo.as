@@ -383,7 +383,12 @@ package alternterrain.core
 			ZSize = byte.readInt();
 			RowWidth = byte.readInt();
 			Scale = byte.readInt();
-			Data = byte.readObject();
+			
+			Data = new Vector.<int>(byte.readUnsignedInt(), true);
+			var len:uint = Data.length;
+			for (var i:uint = 0; i <  len; i++) {
+				Data[i] = byte.readShort();
+			}
 		}
 		
 		public function writeExternal(byte:IDataOutput):void 
@@ -394,7 +399,13 @@ package alternterrain.core
 			byte.writeInt(ZSize);
 			byte.writeInt(RowWidth);
 			byte.writeInt(Scale);
-			byte.writeObject(Data);
+			
+			//byte.writeObject(Data);
+			var len:uint = Data.length;
+			byte.writeUnsignedInt(Data.length);
+			for (var i:uint = 0; i <  len; i++) {
+				byte.writeShort(Data[i]);
+			}
 		}
 		
 		public function reset():void 
@@ -409,13 +420,13 @@ package alternterrain.core
 			var cap:int;
 			
 			x = XSize -1;
-			cap = ZSize - 2;
+			cap = ZSize - 1;
 			for (y = 0; y < cap; y++) {
 				Data[y * RowWidth + x] = Data[y*RowWidth + x - 1];
 			}
 			
 			y = ZSize - 1;
-			cap = XSize - 2;
+			cap = XSize - 1;
 			for (x = 0; x < cap; x++) {
 				Data[y * RowWidth + x] = Data[(y-1)*RowWidth + x ];
 			}
