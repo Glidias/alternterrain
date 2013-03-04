@@ -393,7 +393,7 @@ package terraingen.expander
 		
 		private function finaliseHeightMap():void 
 		{
-			/*
+			///*
 			var normalMapper:PlanarDispToNormConverter = new PlanarDispToNormConverter();
 			normalMapper.heightMap = _heightMap;
 			//normalMapper.setDisplacementMapData(tempData);
@@ -406,7 +406,7 @@ package terraingen.expander
 			//normalMap.bitmapData.applyFilter(normalMap.bitmapData, normalMap.bitmapData.rect, new Point(), new BlurFilter(3, 3, 4) );
 			addChild(normalMap);
 			return;
-			*/
+			//*/
 			
 			_progressLabel.text = "Preparing save file...Please wait...";
 			_heightMap.paddEdgeDataValues();
