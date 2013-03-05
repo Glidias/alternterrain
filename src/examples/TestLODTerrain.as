@@ -231,7 +231,7 @@ class MyTemplate extends Template {
 				omniLight.y = camera.y;
 				omniLight.z = camera.z;
 			}
-			directionalLight.rotationX+=.02;
+			directionalLight.rotationX = 2.32;
 			camera.render(stage3D);
 			//if (terrainLOD) _debugField.text = String( terrainLOD._sampleRect );
 		}

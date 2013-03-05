@@ -246,6 +246,7 @@ package terraingen.expander
 				_heightMap.ZSize = _pagesAcrossY * _pageSize + 1;
 				_heightMap.RowWidth = _heightMap.XSize;
 				_heightMap.Data = new Vector.<int>(_heightMap.XSize * _heightMap.ZSize, true);
+				//_heightMap.fillDataWithValue( int.MIN_VALUE);
 			
 				_heightMap.XOrigin = _worldOriginX*TILE_SIZE;
 				_heightMap.ZOrigin = _worldOriginY*TILE_SIZE;
@@ -582,8 +583,8 @@ package terraingen.expander
 		}
 		
 		private function copyPixelsFromBmpDataToHeightMap(xOrg:int, yOrg:int):void {
-			for ( var y:int = yOrg; y < yOrg+_pageSize; y++) {
-				for (var x:int =xOrg; x < xOrg+_pageSize ; x++) {
+			for ( var y:int = yOrg; y < yOrg+_pageSize+1; y++) {
+				for (var x:int =xOrg; x < xOrg+_pageSize+1 ; x++) {  // not sure why need to have a +1, but this is to avoid seeams
 					_heightMap.Data[y * _heightMap.XSize + x] = _lowestHeight + (_pageBmpdata.getPixel(x - xOrg, y - yOrg) & 0xFF) * _heightMult;
 				}
 			}

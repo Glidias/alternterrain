@@ -34,6 +34,11 @@ package alternterrain.core
 			return Data[ix + iz * RowWidth]; 
 		}
 		
+		public function fillDataWithValue(val:int):void {
+			var i:int = Data.length;
+			while (--i > -1) Data[i] = val;
+		}
+		
 		/*
 		public function getShortData(ix:int, iz:int):int { 
 			var i:int = (ix + iz * RowWidth) << 1;
