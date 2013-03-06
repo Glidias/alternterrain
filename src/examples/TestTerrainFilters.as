@@ -93,7 +93,7 @@ package examples
 			filterNoise.maxDisp = 600;
 			filterNoise.minDisp = -600;
 			filterNoise.terrainRandomSeed = Math.random() * 99999;
-			filterNoise.terrainApplyNoise(20, 4, 2.8, .65);
+			filterNoise.terrainApplyNoise(20, 4, 3.4, .85);
 			
 			//filterNoise.terrainApplyNoise(4, 512, 128);
 			

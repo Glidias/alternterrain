@@ -120,7 +120,7 @@ package atregen
 		{
 			new LoadAliases();
 			
-		
+	
 			
 			addChild( _stats = new Stats() );
 			alignStats();
@@ -405,7 +405,7 @@ package atregen
 			
 		
 			var normalMap:Bitmap = normalMapper.convertToNormalMap();
-			normalMap.bitmapData.applyFilter(normalMap.bitmapData, normalMap.bitmapData.rect, new Point(), new BlurFilter(3,3,4) );
+			//normalMap.bitmapData.applyFilter(normalMap.bitmapData, normalMap.bitmapData.rect, new Point(), new BlurFilter(3,3,4) );
 			
 			var filename:String = getFileNameAt(1, "normal", location);
 			

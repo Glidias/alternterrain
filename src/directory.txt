@@ -45,3 +45,19 @@ This is an island/continent generator to  help generate an island/continent with
 terraingen.expander.ProceduralExpansion
 -------------------------------------------
 The utility is used for quickly creating expanded procedural terrain detail over small grayscaled heightmap image samples, and saving out full resolution heightmap(s) accordingly. The problem with most grayscaled heightmaps is that they can potentially lack detail since the resolution is limited to 0-255 units (epsecially for larger worlds). Thus, this utility can be used to process low-detail heightmaps to produce more natural-looking (bumpier) terrains (by adding detail) and ensure each page sample is seamed smoothly across the edges. I created this specifically to get around the the fact that the island/continent generator as described above didn't provide much detail for larger/higher resolution continents. 
+
+
+
+
+
+ROADMAP:
+	Which method of async loading?
+-------------------------------------
+- A single 1024x1024 page, use bitmapData.draw() / or bitmapData.copyPixels() onto bitmapdata to cover 256x256 samples, always re-upload whole 1024 bitmapdata. 
+DRAWBACK: (re-uploadnig large entire bitmapdata is not economical and may bottleneck)
+
+
+- Multiple 256x256 QuadTreePage tiles, (potentially higher draw calls), load individual heightmap data and normal maps at varying resolutions into each QuadTreePage tile ala Google map. Choice between using dispose and reupload new, or reupload current with bitmapdata.draw() update.
+DRAWBACK: potentially hgiher draw calls
+
+

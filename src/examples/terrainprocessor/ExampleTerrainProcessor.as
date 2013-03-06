@@ -61,7 +61,9 @@ package examples.terrainprocessor
 		public function process1By1Sample(hm:HeightMapInfo, phase:int):void 
 		{
 			// TODO: need to set offset of noise to match heightmap info!
-			filterNoise.terrainApplyNoise(20, 4, 2.8, .65);  // TODO: stitch noise with corrct phase offsets from heightmapInfo xorg/zorg
+			// 20, 4, 2.8, .65  // not so rough
+			// 20, 4, 3.4, .85  // quite rough
+			filterNoise.terrainApplyNoise(20, 4, 2.8, .65);  
 	
 		}
 		

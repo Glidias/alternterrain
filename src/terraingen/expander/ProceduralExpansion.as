@@ -3,6 +3,7 @@ package terraingen.expander
 	import alternterrain.core.HeightMapInfo;
 	import alternterrain.util.BitmapDataReadWrite;
 	import alternterrainxtras.util.ITerrainProcess;
+	import com.adobe.images.JPGEncoder;
 	import com.bit101.components.CheckBox;
 	import com.bit101.components.ComboBox;
 	import com.bit101.components.HBox;
@@ -77,6 +78,7 @@ package terraingen.expander
 		private var _serialList:SerialList;
 		private var _cbLoadSingleHeightmap:CheckBox;
 		private var _cbBoxFilter:CheckBox;
+		private var _cbPreviewNormalmap:CheckBox;
 		private var _terrainName:String;
 		
 		private var _bitmapDataSamples:Vector.<BitmapData>;
@@ -145,6 +147,9 @@ package terraingen.expander
 			
 			_cbBoxFilter = new CheckBox(uiLayout, 0, 0, "Box filter loaded heightmaps");
 			_cbBoxFilter.selected = true;
+			
+			_cbPreviewNormalmap = new CheckBox(uiLayout, 0, 0, "Preview normal map after processing");
+			
 			
 			new Label(uiLayout, 0, 0, "");
 			
@@ -394,20 +399,24 @@ package terraingen.expander
 		
 		private function finaliseHeightMap():void 
 		{
-			/*
-			var normalMapper:PlanarDispToNormConverter = new PlanarDispToNormConverter();
-			normalMapper.heightMap = _heightMap;
-			//normalMapper.setDisplacementMapData(tempData);
-			normalMapper.setDirection("z");
-			//normalMapper.heightMapMultiplier = 1 / 128;
-			normalMapper.setAmplitude(1);
+			///*
+			if (_cbPreviewNormalmap.selected) {
+				var normalMapper:PlanarDispToNormConverter = new PlanarDispToNormConverter();
+				normalMapper.heightMap = _heightMap;
+				//normalMapper.setDisplacementMapData(tempData);
+				normalMapper.setDirection("z");
+				//normalMapper.heightMapMultiplier = 1 / 128;
+				normalMapper.setAmplitude(1);
+				
 			
-		
-			var normalMap:Bitmap = normalMapper.convertToNormalMap();
-			//normalMap.bitmapData.applyFilter(normalMap.bitmapData, normalMap.bitmapData.rect, new Point(), new BlurFilter(3, 3, 4) );
-			addChild(normalMap);
-			return;
-			*/
+				var normalMap:Bitmap = normalMapper.convertToNormalMap();
+				//normalMap.bitmapData.applyFilter(normalMap.bitmapData, normalMap.bitmapData.rect, new Point(), new BlurFilter(3, 3, 4) );
+				addChild(normalMap);
+				
+				new FileReference().save(new JPGEncoder(80).encode(normalMap.bitmapData) ,  "myterrain_normal.jpg");
+				return;
+			}
+			//*/
 			
 			_progressLabel.text = "Preparing save file...Please wait...";
 			_heightMap.paddEdgeDataValues();

@@ -53,6 +53,7 @@
     <element path="lib\Progression4.swc" />
     <element path="lib\marchingsquares.swc" />
     <element path="lib\Stats.swc" />
+    <element path="lib\as3corelib.swc" />
   </libraryPaths>
   <!-- External Libraries -->
   <externalLibraryPaths>

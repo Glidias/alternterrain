@@ -213,23 +213,26 @@ class MyTemplate extends Template {
 		
 		terrainLOD = new TerrainLOD();
 		terrainLOD.detail = .5;
-		//_loadedPage.heightMap.BoxFilterHeightMap();
+
 
 		
-		_loadedPage.heightMap.BoxFilterHeightMap();
+	
 		
+		//_normalMapData = null;
 		if (_normalMapData == null) {  	// Create normal map on the fly... (this is processor intensive and restriced to small terrains only...)
 			var normalMapper:PlanarDispToNormConverter = new PlanarDispToNormConverter();
 			normalMapper.heightMap = _loadedPage.heightMap;
 			normalMapper.setDirection("z");
 			normalMapper.setAmplitude(1);
+			//normalMapper.heightMapMultiplier = 1/128;
 			
 			var normalMap:Bitmap = normalMapper.convertToNormalMap();
-			//normalMap.bitmapData.applyFilter(normalMap.bitmapData, normalMap.bitmapData.rect, new Point(), new BlurFilter(3,3,4) );
 			
 			//addChild( normalMap );
 			_normalMapData = normalMap.bitmapData;
 		}
+		
+		//_normalMapData.applyFilter(_normalMapData, _normalMapData.rect, new Point(), new BlurFilter(1,1,4) );
 
 		var tileAtlasMaterial:LODTileAtlasMaterial = new LODTileAtlasMaterial(new BitmapTextureResource(_atlasLoader.data), 
 										new BitmapTextureResource(_atlasBlendLoader.data), 

@@ -159,10 +159,7 @@ class MyTemplate extends Template {
 		
 		terrainLOD = new TerrainLOD();
 		terrainLOD.detail = .5;
-		//_loadedPage.heightMap.BoxFilterHeightMap();
 
-		
-		_loadedPage.heightMap.BoxFilterHeightMap();
 		
 		if (_normalMapData == null) {  	// Create normal map on the fly... (this is processor intensive and restriced to small terrains only...)
 			var normalMapper:PlanarDispToNormConverter = new PlanarDispToNormConverter();
@@ -171,11 +168,13 @@ class MyTemplate extends Template {
 			normalMapper.setAmplitude(1);
 			
 			var normalMap:Bitmap = normalMapper.convertToNormalMap();
-			//normalMap.bitmapData.applyFilter(normalMap.bitmapData, normalMap.bitmapData.rect, new Point(), new BlurFilter(3,3,4) );
+			
 			
 			//addChild( normalMap );
 			_normalMapData = normalMap.bitmapData;
 		}
+		//_normalMapData.applyFilter(_normalMapData, _normalMapData.rect, new Point(), new BlurFilter(1,1,4) );
+
 		
 		var standardMaterial:StandardMaterial = new StandardMaterial( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData) );
 		standardMaterial.normalMapSpace = NormalMapSpace.OBJECT;
