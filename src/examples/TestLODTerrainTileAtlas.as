@@ -2,13 +2,13 @@ package examples
 {
 	import flash.display.Sprite;
 	/**
-	 * Simple single-page (non-textured) LOD (1024x1024 tiles) terrain with normal map texture.
+	 * Simple single-page (tile-atlas textured) LOD (1024x1024 tiles) terrain with normal mapping.
 	 * @author Glenn Ko
 	 */
-	public class TestLODTerrain extends Sprite
+	public class TestLODTerrainTileAtlas extends Sprite
 	{
 		
-		public function TestLODTerrain() 
+		public function TestLODTerrainTileAtlas() 
 		{
 			addChild( new MyTemplate( root.loaderInfo.url.slice(0, ("http://").length) === "http://" ) );
 		}
@@ -37,7 +37,11 @@ import alternterrain.core.*;
 import alternterrain.objects.*;
 import alternterrain.resources.InstalledQuadTreePages;
 import alternterrain.resources.LoadAliases;
+import alternterrainxtras.materials.LODTileAtlasMaterial;
+import alternterrainxtras.util.Mipmaps;
+import alternterrainxtras.util.TextureAtlasData;
 import flash.events.IEventDispatcher;
+
 
 import alternterrain.util.*;
 import com.tartiflop.PlanarDispToNormConverter;
@@ -75,7 +79,17 @@ class MyTemplate extends Template {
 	[Embed(source="assets/myterrain_normal.jpg")]
 	private var NORMAL_MAP:Class;
 	
+	[Embed(source = "assets/myterrain_biometiles.data", mimeType = "application/octet-stream")]
+	private var TILE_MAP:Class;
+	
 	private var _normalMapData:BitmapData;
+	
+	private var _atlasLoader:TextureAtlasData;
+	private var _atlasBlendLoader:TextureAtlasData;
+	private var _tileMap :BitmapData;
+	private var mipmaps:Mipmaps;
+	
+	
 	
 	
 	
@@ -112,14 +126,54 @@ class MyTemplate extends Template {
 	{
 		if (e) (e.currentTarget as IEventDispatcher).removeEventListener(e.type, addedToStage);
 		
-		processDataAsLoadedPage( new TERRAIN_DATA() );
 		
+			removeEventListener(Event.ADDED_TO_STAGE, addedToStage);
+			
+			processDataAsLoadedPage( new TERRAIN_DATA() );
+		
+		var tileMapData:ByteArray = new TILE_MAP();
+		tileMapData.uncompress();
+		_tileMap = TextureAtlasData.getTileMap(tileMapData);
+		
+		
+		_atlasLoader = new TextureAtlasData(128, 4, 4,  mipmaps = new Mipmaps());
+		_atlasLoader.addEventListener(Event.COMPLETE, onDiffuseAtlasLoadDone);
+		_atlasLoader.loadURLsFromChars("dfhqnsrckgi", "assets/tribes/tilesets/lushdml/", "jpg");
+
+		
+	}
 	
+	private function onDiffuseAtlasLoadDone(e:Event):void 
+	{
+		_atlasBlendLoader = new TextureAtlasData(128, 4, 4,mipmaps, true);
+		_atlasBlendLoader.addEventListener(Event.COMPLETE, onAssetsLoaded);
+		_atlasBlendLoader.loadURLs([
+				"assets/tribes/tilesets/blends/rrrr1.png",
+				"assets/tribes/tilesets/blends/rgbb1.png",
+				"assets/tribes/tilesets/blends/rggg1.png",
+				"assets/tribes/tilesets/blends/rrgg1.png",
+				
+				"assets/tribes/tilesets/blends/rgbb5.png",
+				"assets/tribes/tilesets/blends/rgbb2.png",
+				"assets/tribes/tilesets/blends/rggg2.png",
+				"assets/tribes/tilesets/blends/rrgg2.png",
+				
+				"assets/tribes/tilesets/blends/rggg5.png",
+				"assets/tribes/tilesets/blends/rgbb3.png",
+				"assets/tribes/tilesets/blends/rggg3.png",
+				"assets/tribes/tilesets/blends/rrgg3.png",
+				
+				"assets/tribes/tilesets/blends/rrgg5.png",
+				"assets/tribes/tilesets/blends/rgbb4.png",
+				"assets/tribes/tilesets/blends/rggg4.png",
+				"assets/tribes/tilesets/blends/rrgg4.png"		
+		]);
+	}
+	
+	private function onAssetsLoaded(e:Event):void {
 		addEventListener(VIEW_CREATE, onViewCreate);
-		stage.addEventListener(KeyboardEvent.KEY_DOWN, onkeyDowN)
+		stage.addEventListener(KeyboardEvent.KEY_DOWN, onkeyDowN);
 		init();
-		
-		
 	}
 	
 	
@@ -176,15 +230,19 @@ class MyTemplate extends Template {
 			//addChild( normalMap );
 			_normalMapData = normalMap.bitmapData;
 		}
+
+		var tileAtlasMaterial:LODTileAtlasMaterial = new LODTileAtlasMaterial(new BitmapTextureResource(_atlasLoader.data), 
+										new BitmapTextureResource(_atlasBlendLoader.data), 
+										 new BitmapTextureResource(mipmaps.getMipmapOffsetTable()), mipmaps.mipmapUVCap, 
+										 new <BitmapTextureResource>[new BitmapTextureResource(_tileMap)],
+										new <BitmapTextureResource>[new BitmapTextureResource(_normalMapData)],
+										new <BitmapTextureResource>[null], 128);
+		tileAtlasMaterial.specularPower = 0;
+		tileAtlasMaterial.glossiness = 0;
 		
-		var standardMaterial:StandardMaterial = new StandardMaterial( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData) );
-		standardMaterial.normalMapSpace = NormalMapSpace.OBJECT;
-		standardMaterial.specularPower = 0;
-		standardMaterial.glossiness = 0;
+	
 
-
-
-		terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial, 256*1024 );  //new FillMaterial(0xFF0000, 1)
+		terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, tileAtlasMaterial );  //new FillMaterial(0xFF0000, 1)
 		// )
 		//terrainLOD.useLighting = false;
 
