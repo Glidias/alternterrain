@@ -120,7 +120,10 @@ package examples
 			
 			// leaf smallest node with smallest query square,   --- mark timestamp for any recursed in nodes to mark node as visited...
 			// repeat leafing until largest node with largest query square, do not leaf any nodes on the target level where the nodes are deemed visited
-			// with any leaf, check if already downloaded via bit-vector, if not, than attempt download  // Mark bit flag once already downloaded
+			// with any leaf, check if already downloading via bit-vector, if not, than attempt download  // Mark bit flag once already downloaded, 
+			
+			//for any flushed downloaded content, uncheck bit flag. 
+			// For any nodes that no longer exist, place in holding list for flushing, or bring back from holding list if received again.
 			
 			
 		}
