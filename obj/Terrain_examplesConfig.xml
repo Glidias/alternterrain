@@ -16,7 +16,7 @@
     </define>
     <define append="true">
       <name>CONFIG::timeStamp</name>
-      <value>'3/6/2013'</value>
+      <value>'3/8/2013'</value>
     </define>
     <optimize>true</optimize>
     <omit-trace-statements>true</omit-trace-statements>
@@ -32,7 +32,7 @@
     </library-path>
   </compiler>
   <file-specs>
-    <path-element>D:\Git\alternterrain\src\examples\TestLODTerrainTileAtlas.as</path-element>
+    <path-element>D:\Git\alternterrain\src\examples\TerrainQueryBox.as</path-element>
   </file-specs>
   <default-background-color>#FFFFFF</default-background-color>
   <default-frame-rate>60</default-frame-rate>

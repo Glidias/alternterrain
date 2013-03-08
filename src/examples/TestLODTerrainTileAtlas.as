@@ -67,7 +67,6 @@ use namespace alternativa3d;
 
 class MyTemplate extends Template {
 	
-	private var heightMapTest:HeightMapInfo;
 	private var terrainLOD:TerrainLOD;
 	private var _loadedPage:QuadTreePage;
 	
