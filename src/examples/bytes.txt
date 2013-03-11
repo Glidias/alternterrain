@@ -1,0 +1,31 @@
+Progressive Interlace loading of vertex heightmaps (the Adam7 approach) for streaming LOD terrain roadmap
+----------------------------------------------------------------------------------------------------------
+33*33 = 1089 int16 = 2178 bytes = 2.1kb
+32*33 + 32*65 = 3136 int16 = 6272 bytes = 6.2kb
+64*65 + 64*129 = 12416 int16 = 24832 bytes = 24.8kb
+128*129 + 128*257 = 49408 int16 = 98816 bytes = 98.8kb
+256*257 + 256*513 =  197120 int16 = 394240 bytes = 394.2kb
+512*513 + 512*1025 = 787456 int16 = 1574912 bytes = 1.5MB
+
+1574912+394240+98816+24832+6272+2178 = 2101250 net bytes (progressive load) = 2.1MB
+1025*1025*2 = 2101250 net bytes  (immediate load) = 2.1MB
+
+One can adopt page sizes lower than 1024 (like 256/512) if it is deemed better, depending on user's bandwidth.
+
+For a 32x32 patched resolution terrain chunk, there are 6 levels of LODs. File streams are opened and progressively loaded from the beginning at level 0 until the required number of bytes is reached for next level, from which the heightmap can be updated to it's higher resolution and any related terrain node at that level will be invalidated. Depending on certain cases where higher LODS isn't necessary yet, the filestream pauses and only resumes when a request for higher LOD is potentially needed. (See TerrainQueryBox)
+
+When heightmap level is loaded (either via streaming or individual file http load), upgrade heightmap to higher detail. Add in quad-tree pages error/bounds headers data for that level. (if error for current for highest child succeeded), than just need to create the quad-tree nodes for that level. So, basically, it's a breath-first adding of quadSquareChunk lod data whenever lod is added. Thus, the quad tree is adaptive and builds itself up over time, and only goes as far deep as how much is loaded at a time.  // ie. if 4 children is NULL but can still recurse in based on MAX level for that page, than dispatch upgrade load request during render. Streaming may be required for fast-moving flights across terrain where updates need to be quick and relatively lag-free...else if travelling on foot or on slow-ground vehicle, http loads can be fine.
+
+Interlace portion + Create new lines portion (to get new LOD level)
+(lp * lv)  +  (cv * lp) 
+or (lp * lv) + (lp * cv)   (using lp as a common factor on LHS arrangement)
+
+
+lp - Last level's number of patches  (ie. lv -1 )
+lv - Last level's number of vertices (ie. lp + 1)
+cp - Current levels' number of patches (ie. cv - 1)
+cv - Current level's number of vertices (ie. cp + 1)
+
+To get new detail level of image:
+(lp * lv)  Interlace portion (horizontally fill in last level's lines, (ie. lv) that exists vertically with greater detail horizontally )
+(cv * lp)  Create new lines portion (fill in last number of patches that exists vertically (ie. lp) with current level's of vertices horizontally cv)
