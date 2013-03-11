@@ -59,6 +59,7 @@
     <element path="lib\v8\Alternativa3D.swc" />
     <element path="lib\Stats.swc" />
     <element path="lib\Alternativa3D.swc" />
+    <element path="lib\greensock.swc" />
   </libraryPaths>
   <!-- External Libraries -->
   <externalLibraryPaths>
@@ -78,7 +79,7 @@
   </library>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>
-    <compile path="src\examples\TerrainQueryBox.as" />
+    <compile path="src\examples\TestLODTerrain.as" />
   </compileTargets>
   <!-- Paths to exclude from the Project Explorer tree -->
   <hiddenPaths>
