@@ -569,7 +569,7 @@ package terraingen.island  {
             for each (edge in p.borders) {
                 var color:int = colors[p.biome] || 0;
                 if (colorFunction != null) {
-                  color = colorFunction(color, p, q, edge);
+                  color = colorFunction(color, p, q, edge, colors, 0x808080);
                 }
 
                 // We'll draw two triangles: center - corner0 -

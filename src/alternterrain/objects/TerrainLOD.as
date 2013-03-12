@@ -291,9 +291,9 @@ package alternterrain.objects
 			
 			lodLvlMin = Math.round(Math.log(tileSize * PATCHES_ACROSS) * Math.LOG2E) - 1;
 
-			if (PROTO_32 == null) {
+			//if (PROTO_32 == null) {
 				setupPrototypes(context3D, tileSize);	
-			}
+			//}
 			
 			/*
 			if ((requirements & VERTEX_NORMALS) &&  (!quadCornerChunk.normals || !quadCornerChunk.normals.Normals || !quadCornerChunk.normals.Normals.length ) ) {
@@ -521,7 +521,7 @@ package alternterrain.objects
 		
 		private function setupPrototypes(context3D:Context3D, patchSize:int ):void 
 		{
-			PROTO_32 = TerrainGeomTools.createLODTerrainChunkForMesh(PATCHES_ACROSS, patchSize);
+			if (PROTO_32 == null) PROTO_32 = TerrainGeomTools.createLODTerrainChunkForMesh(PATCHES_ACROSS, patchSize);
 			//var indexLookup:Vector.<int>
 			setupIndexBuffers(context3D, PROTO_32.indexLookup, PATCHES_ACROSS);
 		
@@ -744,7 +744,7 @@ package alternterrain.objects
 			return useLighting;
 		}
 		
-		
+	
 		
 		override alternativa3d function collectDraws(camera:Camera3D, lights:Vector.<Light3D>, lightsLength:int, useShadow:Boolean):void {
 				
