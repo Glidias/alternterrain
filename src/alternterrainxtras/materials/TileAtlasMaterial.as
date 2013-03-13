@@ -30,6 +30,7 @@ package alternterrainxtras.materials {
         import alternativa.engine3d.resources.BitmapTextureResource;
         import alternativa.engine3d.resources.Geometry;
         import alternativa.engine3d.resources.TextureResource;
+		import flash.display.BitmapData;
 
 		import alternativa.engine3d.materials.TextureMaterial;
         import avmplus.getQualifiedClassName;
@@ -95,7 +96,7 @@ package alternterrainxtras.materials {
            static alternativa3d const getDiffuseProcedure:Procedure = new Procedure([
             
                 "#v0=vUV",
-                "#v1=vZDistance",
+                "#v1=vDistance",
                 "#s0=sDiffuse",
                 "#s1=sTileIndices",    // sample texture index for tile indices
                 "#s2=sMipmapOffsets", 
@@ -284,47 +285,223 @@ package alternterrainxtras.materials {
              * Procedure for diffuse with opacity map.
              */
             static alternativa3d const getDiffuseOpacityProcedure:Procedure = new Procedure([   // TODO: (if needed).   Most cases i'm dealing with fully opaque textures only.
-                "#v0=vUV",
-                
+                 "#v0=vUV",
+				 "#v2=vUV1",
+                "#v1=vDistance",
                 "#s0=sDiffuse",
-                "#s1=sOpacity",
+                "#s1=sTileIndices",    // sample texture index for tile indices
+                "#s2=sMipmapOffsets", 
+                "#s3=sBlendAtlas", 
+				"#s4=sOpacity", 
                 "#c0=cThresholdAlpha",
-                "tex t0, v0, s0 <2d, linear,clamp, miplinear>",
-                "tex t1, v0, s1 <2d, linear,repeat, miplinear>",
-                "mul t0.w, t1.x, c0.w",
-                "mov o0, t0"
+                "#c0=cThresholdAlpha",
+                "#c1=cTilePaddSize",
+                "#c2=cTileFrac",   //       1/ noTilesAcross   u and v directions,    +  tileSizeWidth and tileSizeHeight in UV coordinates within atlas
+                "#c3=cF",  //(f=camera.focalLength / resolution,  totalMipmaps, mipmapUVCap, 1)
+                "#c4=cAtlasTiles",
+                "#c5=c255",  // required to fix fractionals x/255 * 256.
+                //"mov t1, c5",  // dummy usage if needed
+                "mov t1, v0", 
+				"frc t0.xy, t1.xy",
+				"sub t1.xy, t1.xy, t0.xy",
+				"mul t1.xy, t1.xy, c2.xy",
+                "tex t1, t1, s1 <2d,nearest,clamp,nomip>",   // sample t1 tile index lookup
+                "mul t1.xyz, t1.xyz, c5.xxx",   // fix fractionals
+                "mul t1.xyz, t1.xyz, c5.www",
+                // Find t2 transform
+                "mul t0.z, t1.z, c4.z",
+                "frc t0.w, t0.z",  // right half 4 bits (to split later.)
+                "sub t0.z, t0.z, t0.w",
+                "mul t0.z, t0.z, c4.w",  // left half 4 bits
+                "mul t0.z, t0.z, c4.x",  // split left half of 4 bits
+                "frc t1.w, t0.z",   // right half 2 bits  (b)
+                "sub t0.z, t0.z, t1.w",
+                //"mul t0.z, t0.z, c4.y",  // left half 2 bits  (a)
+                // finalise right half of 2 bits ~(b)~ as a value of either: -1, 0, 1, 2
+                "mul t1.w, t1.w, c4.x",
+                "sub t2.y, t1.w, c3.w",
+                // finalise left half of 2 bits ~(a)~ as a value of either: -1, 0, 1, 2
+                //"mul t0.z, t0.z, c4.x",
+                "sub t2.x, t0.z, c3.w",
+    
+                "mul t0.w, t0.w, c4.x",  // split right half of 4 bits (finally..)
+                "frc t1.w, t0.w",  // right half 2 bits (d)
+                "sub t0.w, t0.w, t1.w",  
+                //"mul t0.w, t0.w, c4.y",   // left half 2 bits  (c)
+                // finalise right half of 2 bits ~(d)~ as a value of either: -1, 0, 1, 2
+                "mul t1.w, t1.w, c4.x",
+                "sub t2.w, t1.w, c3.w",
+                // finalise left half of 2 bits ~(c)~ as a value of either: -1, 0, 1, 2
+                //"mul t0.w, t0.w, c4.x",
+                "sub t2.z, t0.w, c3.w",
+                
+                
+                "mov t0, v0",  // dummy usage required somehow.
+				
+                // ------     get normalized tile-based uv offsets with fractionals (t0)
+               // "div t0.xy, t0.xy, c2.xy",  
+                "frc t0.xy, t0.xy", 
+                 // Pseudo-dp2 operations: rotate t0.xy vector by t2 matrix (using a .5 constant for c5.y register)
+                 "sub t0.xy, t0.xy, c5.yy",  // from .5 mark
+                // /*
+                "mul t0.z, t0.x, t2.x",
+                "mul t0.w, t0.y, t2.y",
+                "add t0.z, t0.z, t0.w",   // result for t0.x transformed.
+                
+                "mul t0.w, t0.x, t2.z",
+                "mul t0.y, t0.y, t2.w",
+                "add t0.y, t0.w, t0.y",  // result for t0.y transformed.
+                
+                "mov t0.x, t0.z",
+                //*/
+                "add t0.xy, t0.xy, c5.yy",  // end .5 mark
+			
+                
+                // now calculate mipmap level ( t2 can be resued again)
+                "mov t2, v1",  
+                "div t2.x, t2.z, c3.x",  // Calculate mipmap level manually per pixel  (z >= f) ?  (log(z/f)) : 0;
+                "log t2.x, t2.x",   // binary log
+                "frc t2.y, t2.x",  // round down
+                "sub t2.x, t2.x, t2.y",  
+                
+                "div t2.x, t2.x, c3.y",   // get uv sample ratio of current mipmap level against total mipmaps
+                "mul t2.x, t2.x, c3.z",  // clamp ratio to base uv cap amount
+                
+                "tex t2, t2, s2 <2d,nearest,clamp,nomip>",  // sample mipmap level offset lookup  // assume t2.zw ignored ?
+                "mul t2.y, t2.y, c2.z", // as actual u offset value
+                "mul t2.w, t2.z, c2.z",   // this value is either zero or 1*tileSize, depending on t2.z is either zero or 1.
+                "add t2.y, t2.y, t2.w",  // last operand should be t2.w (mipmap offset for u)
+                
+                "mul t2.z, c2.z, t2.x",  // take into consideration tile size reduction due to mipmapping
+                "mul t2.w, c2.w, t2.x",
+				
+				
+                "div t0.z, c1.x, t2.x",  // clamp normalized uvs according to mipmap level
+				"min t0.z, t0.z, c5.y",
+				
+				"sub t0.w, c3.w, t0.z",
+				"min t0.xy, t0.xy, t0.ww",
+				"max t0.xy, t0.xy, t0.zz",
+				
+                "mul t0.x, t0.x, t2.z",      // normalized tile-based uv offset * tile uv size on atlas . 
+                "mul t0.y, t0.y, t2.w",      // normalized tile-based uv offset * tile uv size on atlas . 
+				
+                "add t0.x, t0.x, t2.y",    // add mipmap offset 
+                // t0, t1 reserved!
+			
+  
+                // Find t0-t2.w, from t2.xyz: blend intensities 
+                "mul t1.z, t1.y, c4.z",
+                "frc t2.w, t1.z",  // right half 4 bits (blend uv tile)
+    
+                "sub t1.z, t1.z, t2.w",  
+                "mul t1.z, t1.z, c4.w",       // the left half of 4 bits (to consider later for the B color sample)
+                
+                "mul t2.w, t2.w, c4.x", // split right half of 4 bits
+                "frc t2.y, t2.w",  // right half of 2 bits (v)  // This seems wrong, the fractional returns a high value!
+                "sub t2.w, t2.w, t2.y",
+                "mul t2.x, t2.w, c4.y",  // left half of 2 bits (u)
+            
+                "add t2.xy, t2.xy, t0.xy",
+                "tex t2, t2, s3 <2d, linear,clamp, nomip>",  // assume t2.zw ignored
+	
+              
+                ///*   // Run blending for all 3 textures
+                "mov t0.w, t2.x",
+                "mov t1.w, t2.y",
+                "mov t2.w, t2.z",   // derived ratios from t2 isn't normalized! Please check!
+                
+                // Merge all 3 colors
+                //  t1.z and t1.y, will be FREE after unpacking Blue, t1.xy occupied.  t2.xyz occupied. t0-2.w occupied. t0.xy occupied. t0.z is FREE.
+                
+                // Finalise t2.xyzw output color
+                
+                // Sample and Add B
+                // split left half of 2 bits
+                "mul t1.z, t1.z, c4.x",
+                "frc t0.z, t1.z",   // v coordinate
+                "sub t1.z, t1.z, t0.z",
+                "mul t1.z, t1.z, c4.y",   // u coordinate
+                
+                "add t0.x, t0.x, t1.z", // we need to temporarily sample with t0 first, since t1 must be kept intact for now
+                "add t0.y, t0.y, t0.z", 
+                "mov t1.y, t2.w",  // required last minute move because t2.w will be cancelled away when sampling with it (check if needed again..)
+                
+                "tex t2, t0, s0 <2d, linear,clamp, nomip>",   // assumed t0.zw ignored.  t2 only works now, but later need to maintain t2 state for addiitive blending!
+                "sub t0.x, t0.x, t1.z",  // (due to lack of registers) hack to restore back original values for t0 variable.
+                "sub t0.y, t0.y, t0.z",
+                "mul t2.xyz, t2.xyz, t1.yyy",    // the starting t2 value. t2.xyz is locked from now onwards
+                
+                //t1.y is free, t1.z is free,    t2.w is free
+                // move t1.x to t1.z, in order to sample r with t1.xy register, while maintaining reference to t2 color
+                "mov t1.z, t1.x",
+                
+                //  Sample and Add R
+                "mul t1.x, t1.z, c4.z",
+                "frc t2.w, t1.x",  // right 4 bits (for G sample)
+                "sub t1.x, t1.x, t2.w",
+                "mul t1.x, t1.x, c4.w",  // left 4 bits (for R sample)
+                "mul t1.x, t1.x, c4.x", // split left 4 bits
+                "frc t1.y, t1.x",     //  v sample
+                "sub t1.x, t1.x, t1.y",
+                "mul t1.x, t1.x, c4.y",  // u sample
+                "add t1.xy, t1.xy, t0.xy",
+                // t2.w must be kep3t!  // t1 will be gone! // t0.xy taken, t0.w taken. t0.z??, t2.xyz must be kept
+                "mov t0.z, t2.w",  // required last minute move to ensure t2.w value is maintained for G sample later.
+                
+                "mov t2.w, t1.w", // required last minute move because t1.w will be cancelled when sampling with it (check again if needed0
+                "tex t1, t1, s0 <2d, linear,clamp, nomip>", 
+                "mul t1.xyz, t1.xyz, t0.www",
+               "add t2.xyz, t2.xyz, t1.xyz",
+                
+                //  Sample and Add G   
+                "mul t1.x, t0.z, c4.x", // split right 4 bits
+                "frc t1.y, t1.x",  // v sample
+                "sub t1.x, t1.x, t1.y",
+                "mul t1.x, t1.x, c4.y",  // u sample
+                "add t1.xy, t1.xy, t0.xy", 
+                "tex t1, t1, s0 <2d, linear,clamp, nomip>", 
+                "mul t1.xyz, t1.xyz, t2.www",
+               "add t2.xyz, t2.xyz, t1.xyz",
+                
+                "mov t2.w, c3.w", //ensure alpha 1
+                "mul t2.w, t2.w, c0.w", // multiplied by alpha setting
+              
+                "tex t1, v2, s4 <2d, linear,repeat, miplinear>",
+                "mul t2.w, t1.x, c0.w",
+                "mov o0, t2"
             ], "getDiffuseOpacityProcedure");
 
             /**
              * @protected
              */
-            alternativa3d static const DISABLED:int = 0;
+            public static const DISABLED:int = 0;
             /**
              * @protected
              */
-            alternativa3d static const SIMPLE:int = 1;
+            public static const SIMPLE:int = 1;
             /**
              * @protected
              */
-            alternativa3d static const ADVANCED:int = 2;
+            public static const ADVANCED:int = 2;
 
             /**
              * @protected
              */
-            alternativa3d static var fogMode:int = DISABLED;
+            public static var fogMode:int = DISABLED;
             /**
              * @protected
              */
-            alternativa3d static var fogNear:Number = 1000;
+            public static var fogNear:Number = 1000;
             /**
              * @protected
              */
-            alternativa3d static var fogFar:Number = 5000;
+            public static var fogFar:Number = 5000;
 
             /**
              * @protected
              */
-            alternativa3d static var fogMaxDensity:Number = 1;
+            public static var fogMaxDensity:Number = 1;
 
             /**
              * @protected
@@ -337,12 +514,22 @@ package alternterrainxtras.materials {
             /**
              * @protected
              */
-            alternativa3d static var fogColorB:Number = 0xC8/255;
+            alternativa3d static var fogColorB:Number = 0xC8 / 255;
+			
+			public static function set fogColor(val:uint):void {
+				fogColorR = ((val & 0xFF0000) >> 16) / 255;
+				fogColorG = ((val & 0xFF00) >> 8) / 255;
+				fogColorB = ((val & 0xFF)) / 255;
+			}
 
             /**
              * @protected
              */
             alternativa3d static var fogTexture:TextureResource;
+			
+			 
+			public var mistMap:TextureResource;   // a fog of war texture
+			
 			
 			public var uvMultiplier:Number = 1;
             
@@ -466,7 +653,7 @@ package alternterrainxtras.materials {
             ], "mulLightingProcedure");
             
             protected static const passZDistanceProcedure:Procedure = new Procedure([
-                "#v1=vZDistance",
+                "#v1=vDistance",
                 "#c0=cZSpace",
                 "dp4 t0.z, i0, c0",
                 "mov v1, t0.zzzz"
@@ -494,6 +681,24 @@ package alternterrainxtras.materials {
                 "add i0.xyz, i0.xyz, t0.xyz",
                 "mov o0, i0"
             ], "outputWithSimpleFog");
+			
+			private static const MIST_APPLY:Array =   [ "#c0=cFogColor",
+                "#s0=sMist",
+				"#v0=vUV1",
+				"tex t0, v0, s0 <2d, linear,repeat, miplinear>",
+				"sub t0.y, c0.w, t0.y",
+                "mul i0.xyz, i0.xyz, t0.y",
+				"mul t0.xyz, c0.xyz, t0.x",
+                "add i0.xyz, i0.xyz, t0.xyz",
+				];
+			
+			protected static const applyWithMistProcedure:Procedure = new Procedure(
+				MIST_APPLY.concat()
+            , "applyWithMist");
+			
+			 protected static const outputWithMistProcedure:Procedure = new Procedure(
+               MIST_APPLY.concat( "mov o0, i0" )
+            , "outputWithMist");
 
             // inputs : position, projected
             protected static const postPassAdvancedFogConstProcedure:Procedure = new Procedure([
@@ -681,6 +886,13 @@ package alternterrainxtras.materials {
                         A3DUtils.checkParent(getDefinitionByName(getQualifiedClassName(blendAtlas)) as Class, resourceType)) {
                     resources[blendAtlas] = true;
                 }
+				
+				 if (mistMap != null &&
+                        A3DUtils.checkParent(getDefinitionByName(getQualifiedClassName(mistMap)) as Class, resourceType)) {
+                    resources[mistMap] = true;
+                }
+				
+				
 
 				/*
                 if (glossinessMap != null &&
@@ -1035,6 +1247,8 @@ package alternterrainxtras.materials {
                         fragmentLinker.setOutputParams(_applySpecularProcedure, "tTotalHighLight");
                         outputProcedure = _applySpecularProcedure;
                     }
+					
+			
 
                 
                     
@@ -1048,29 +1262,43 @@ package alternterrainxtras.materials {
                         fragmentLinker.addProcedure(outputProcedure, "tColor");
                         fragmentLinker.setOutputParams(outputProcedure, "tColor");
                     }
-
+					
+					
+					
+					
                     fragmentLinker.addProcedure(_mulLightingProcedure, "tColor", "tTotalLight", "tTotalHighLight");
+					
 
+				
+					if (mistMap != null) {
+						fragmentLinker.addProcedure( fogMode !=0 ? applyWithMistProcedure : outputWithMistProcedure, "tColor");
+					}
 
-    //                if (fogMode == SIMPLE || fogMode == ADVANCED) {
-    //                    fragmentLinker.setOutputParams(_mulLightingProcedure, "tColor");
-    //                }
-    //                if (fogMode == SIMPLE) {
-    //                    vertexLinker.addProcedure(passSimpleFogConstProcedure);
-    //                    vertexLinker.setInputParams(passSimpleFogConstProcedure, positionVar);
-    //                    fragmentLinker.addProcedure(outputWithSimpleFogProcedure);
-    //                    fragmentLinker.setInputParams(outputWithSimpleFogProcedure, "tColor");
-    //                    outputProcedure = outputWithSimpleFogProcedure;
-    //                } else if (fogMode == ADVANCED) {
-    //                    vertexLinker.declareVariable("tProjected");
-    //                    vertexLinker.setOutputParams(_projectProcedure, "tProjected");
-    //                    vertexLinker.addProcedure(postPassAdvancedFogConstProcedure);
-    //                    vertexLinker.setInputParams(postPassAdvancedFogConstProcedure, positionVar, "tProjected");
-    //                    fragmentLinker.addProcedure(outputWithAdvancedFogProcedure);
-    //                    fragmentLinker.setInputParams(outputWithAdvancedFogProcedure, "tColor");
-    //                    outputProcedure = outputWithAdvancedFogProcedure;
-    //                }
+					///*
+                    if (fogMode == SIMPLE || fogMode == ADVANCED || mistMap!=null ) {
+                       fragmentLinker.setOutputParams(_mulLightingProcedure, "tColor");
+                    }
+                    if (fogMode == SIMPLE) {
+                        vertexLinker.addProcedure(passSimpleFogConstProcedure);
+                       vertexLinker.setInputParams(passSimpleFogConstProcedure, positionVar);
+                        fragmentLinker.addProcedure(outputWithSimpleFogProcedure);
+                        fragmentLinker.setInputParams(outputWithSimpleFogProcedure, "tColor");
+                        outputProcedure = outputWithSimpleFogProcedure;
+                    } else if (fogMode == ADVANCED) {
+                       vertexLinker.declareVariable("tProjected");
+                        vertexLinker.setOutputParams(_projectProcedure, "tProjected");
+                        vertexLinker.addProcedure(postPassAdvancedFogConstProcedure);
+                        vertexLinker.setInputParams(postPassAdvancedFogConstProcedure, positionVar, "tProjected");
+                        fragmentLinker.addProcedure(outputWithAdvancedFogProcedure);
+                        fragmentLinker.setInputParams(outputWithAdvancedFogProcedure, "tColor");
+                        outputProcedure = outputWithAdvancedFogProcedure;
+                    }
+				//	*/
+				
 
+		
+					
+					
                     fragmentLinker.varyings = vertexLinker.varyings;
                     program = new TileAtlasMaterialProgram(vertexLinker, fragmentLinker, (shadowedLight != null) ? 1 : lightsLength);
 
@@ -1276,48 +1504,59 @@ package alternterrainxtras.materials {
                  var lm:Transform3D = object.localToCameraTransform;
                 drawUnit.setVertexConstantsFromNumbers(program.vertexShader.getVariableIndex("cZSpace"), lm.i, lm.j, lm.k, lm.l);
                 
-
-    //            if (fogMode == SIMPLE || fogMode == ADVANCED) {
-    //                var lm:Transform3D = object.localToCameraTransform;
-    //                var dist:Number = fogFar - fogNear;
-    //                drawUnit.setVertexConstantsFromNumbers(program.vertexShader.getVariableIndex("cFogSpace"), lm.i/dist, lm.j/dist, lm.k/dist, (lm.l - fogNear)/dist);
-    //                drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogRange"), fogMaxDensity, 1, 0, 1 - fogMaxDensity);
-    //            }
-    //            if (fogMode == SIMPLE) {
-    //                drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogColor"), fogColorR, fogColorG, fogColorB);
-    //            }
-    //            if (fogMode == ADVANCED) {
-    //                if (fogTexture == null) {
-    //                    var bmd:BitmapData = new BitmapData(32, 1, false, 0xFF0000);
-    //                    for (i = 0; i < 32; i++) {
-    //                        bmd.setPixel(i, 0, ((i/32)*255) << 16);
-    //                    }
-    //                    fogTexture = new BitmapTextureResource(bmd);
-    //                    fogTexture.upload(camera.context3D);
-    //                }
-    //                var cLocal:Transform3D = camera.localToGlobalTransform;
-    //                var halfW:Number = camera.view.width/2;
-    //                var leftX:Number = -halfW*cLocal.a + camera.focalLength*cLocal.c;
-    //                var leftY:Number = -halfW*cLocal.e + camera.focalLength*cLocal.g;
-    //                var rightX:Number = halfW*cLocal.a + camera.focalLength*cLocal.c;
-    //                var rightY:Number = halfW*cLocal.e + camera.focalLength*cLocal.g;
-    //                // Finding UV
-    //                var angle:Number = (Math.atan2(leftY, leftX) - Math.PI/2);
-    //                if (angle < 0) angle += Math.PI*2;
-    //                var dx:Number = rightX - leftX;
-    //                var dy:Number = rightY - leftY;
-    //                var lens:Number = Math.sqrt(dx*dx + dy*dy);
-    //                leftX /= lens;
-    //                leftY /= lens;
-    //                rightX /= lens;
-    //                rightY /= lens;
-    //                var uScale:Number = Math.acos(leftX*rightX + leftY*rightY)/Math.PI/2;
-    //                var uRight:Number = angle/Math.PI/2;
-    //
-    //                drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogConsts"), 0.5*uScale, 0.5 - uRight, 0);
-    //                drawUnit.setTextureAt(program.fragmentShader.getVariableIndex("sFogTexture"), fogTexture._texture);
-    //            }
+				///*
+               if (fogMode == SIMPLE || fogMode == ADVANCED) {
+                   lm = object.localToCameraTransform;
+                    var dist:Number = fogFar - fogNear;
+                   drawUnit.setVertexConstantsFromNumbers(program.vertexShader.getVariableIndex("cFogSpace"), lm.i/dist, lm.j/dist, lm.k/dist, (lm.l - fogNear)/dist);
+                    drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogRange"), fogMaxDensity, 1, 0, 1 - fogMaxDensity);
+                }
+				//*/
+				
+               if (fogMode == SIMPLE  || mistMap != null) {
+                    drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogColor"), fogColorR, fogColorG, fogColorB, 1);
+                }
+				
+				
+				if (mistMap != null) drawUnit.setTextureAt(program.fragmentShader.getVariableIndex("sMist"), mistMap._texture);
+			
+    ///*    
+					if (fogMode == ADVANCED) {
+                    if (fogTexture == null) {
+                        var bmd:BitmapData = new BitmapData(32, 1, false, 0xFF0000);
+                        for (i = 0; i < 32; i++) {
+                           bmd.setPixel(i, 0, ((i/32)*255) << 16);
+                        }
+                        fogTexture = new BitmapTextureResource(bmd);
+                        fogTexture.upload(camera.context3D);
+                    }
+                    var cLocal:Transform3D = camera.localToGlobalTransform;
+                    var halfW:Number = camera.view.width/2;
+                    var leftX:Number = -halfW*cLocal.a + camera.focalLength*cLocal.c;
+                    var leftY:Number = -halfW*cLocal.e + camera.focalLength*cLocal.g;
+                    var rightX:Number = halfW*cLocal.a + camera.focalLength*cLocal.c;
+                    var rightY:Number = halfW*cLocal.e + camera.focalLength*cLocal.g;
+                    // Finding UV
+                    var angle:Number = (Math.atan2(leftY, leftX) - Math.PI/2);
+                    if (angle < 0) angle += Math.PI*2;
+                    var dx:Number = rightX - leftX;
+                    var dy:Number = rightY - leftY;
+                    var lens:Number = Math.sqrt(dx*dx + dy*dy);
+                    leftX /= lens;
+                    leftY /= lens;
+                    rightX /= lens;
+                    rightY /= lens;
+                    var uScale:Number = Math.acos(leftX*rightX + leftY*rightY)/Math.PI/2;
+                    var uRight:Number = angle/Math.PI/2;
+    
+                    drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogConsts"), 0.5*uScale, 0.5 - uRight, 0);
+                    drawUnit.setTextureAt(program.fragmentShader.getVariableIndex("sFogTexture"), fogTexture._texture);
+                }
+				
+				
+			//*/
             }
+			
 
             protected static var lightGroup:Vector.<Light3D> = new Vector.<Light3D>();
             protected static var shadowGroup:Vector.<Light3D> = new Vector.<Light3D>();

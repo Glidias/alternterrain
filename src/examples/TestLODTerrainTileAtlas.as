@@ -38,6 +38,7 @@ import alternterrain.objects.*;
 import alternterrain.resources.InstalledQuadTreePages;
 import alternterrain.resources.LoadAliases;
 import alternterrainxtras.materials.LODTileAtlasMaterial;
+import alternterrainxtras.materials.TileAtlasMaterial;
 import alternterrainxtras.util.Mipmaps;
 import alternterrainxtras.util.TextureAtlasData;
 import flash.events.IEventDispatcher;
@@ -80,6 +81,9 @@ class MyTemplate extends Template {
 	
 	[Embed(source = "assets/myterrain_biometiles.data", mimeType = "application/octet-stream")]
 	private var TILE_MAP:Class;
+	
+	[Embed(source="assets/edgeblend_mist.png")]
+	private var EDGE:Class;
 	
 	private var _normalMapData:BitmapData;
 	
@@ -241,8 +245,13 @@ class MyTemplate extends Template {
 										new <BitmapTextureResource>[null], 128);
 		tileAtlasMaterial.specularPower = 0;
 		tileAtlasMaterial.glossiness = 0;
+		tileAtlasMaterial.mistMap =  new BitmapTextureResource(new EDGE().bitmapData);
+		//tileAtlasMaterial.alphaThreshold = 1;
 		
-	
+		//TileAtlasMaterial.fogMode = 1;
+		TileAtlasMaterial.fogFar = camera.farClipping = 256 * 800;
+		TileAtlasMaterial.fogNear = 128 * 256;
+		TileAtlasMaterial.fogColor =  settings.viewBackgroundColor;
 
 		terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, tileAtlasMaterial );  //new FillMaterial(0xFF0000, 1)
 		// )

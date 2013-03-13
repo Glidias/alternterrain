@@ -37,6 +37,7 @@ import alternterrain.core.*;
 import alternterrain.objects.*;
 import alternterrain.resources.InstalledQuadTreePages;
 import alternterrain.resources.LoadAliases;
+import com.nodename.Delaunay.Edge;
 import flash.events.IEventDispatcher;
 
 import alternterrain.util.*;
@@ -75,9 +76,11 @@ class MyTemplate extends Template {
 	[Embed(source="assets/myterrain_normal.jpg")]
 	private var NORMAL_MAP:Class;
 	
+	[Embed(source="assets/edgeblend_mist.png")]
+	private var EDGE:Class;
+	
 	private var _normalMapData:BitmapData;
-	
-	
+
 	
 	public function MyTemplate(IS_ONLINE:Boolean=false) {
 		super();
@@ -176,12 +179,24 @@ class MyTemplate extends Template {
 		//_normalMapData.applyFilter(_normalMapData, _normalMapData.rect, new Point(), new BlurFilter(1,1,4) );
 
 		
-		var standardMaterial:StandardMaterial = new StandardMaterial( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData) );
+		//new BitmapTextureResource(new EDGE().bitmapData)
+		var standardMaterial:StandardMaterial = new StandardMaterial( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData), null, null  );
+		standardMaterial.transparentPass = true;
+		//standardMaterial.opaquePass = false;
+		standardMaterial.alphaThreshold = 1;
+		
+		//throw new Error([standardMaterial.opaquePass, standardMaterial.alphaThreshold, standardMaterial.transparentPass]);
+		//standardMaterial.transparentPass = false;
 		standardMaterial.normalMapSpace = NormalMapSpace.OBJECT;
 		standardMaterial.specularPower = 0;
 		standardMaterial.glossiness = 0;
-
-
+		standardMaterial.mistMap = new BitmapTextureResource(new EDGE().bitmapData);
+		
+		StandardMaterial.fogMode = 1;
+		StandardMaterial.fogFar = camera.farClipping = 256 * 600;
+		StandardMaterial.fogNear = 256 * 32;
+		StandardMaterial.fogColor = settings.viewBackgroundColor;
+		
 
 		terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial, 256*1024 );  //new FillMaterial(0xFF0000, 1)
 		// )
