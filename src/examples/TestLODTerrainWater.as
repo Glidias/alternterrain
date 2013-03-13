@@ -27,6 +27,7 @@ import alternativa.engine3d.materials.FillMaterial;
 import alternativa.engine3d.materials.NormalMapSpace;
 import alternativa.engine3d.materials.StandardMaterial;
 import alternativa.engine3d.materials.StandardTerrainMaterial;
+import alternativa.engine3d.materials.StandardTerrainMaterial2Test;
 import alternativa.engine3d.materials.TextureMaterial;
 import alternativa.engine3d.materials.VertexLightTextureMaterial;
 import alternativa.engine3d.objects.Mesh;
@@ -41,6 +42,7 @@ import alternterrain.resources.InstalledQuadTreePages;
 import alternterrain.resources.LoadAliases;
 import com.nodename.Delaunay.Edge;
 import flash.events.IEventDispatcher;
+import flash.geom.Vector3D;
 
 import alternterrain.util.*;
 import com.tartiflop.PlanarDispToNormConverter;
@@ -82,6 +84,8 @@ class MyTemplate extends Template {
 	private var EDGE:Class;
 	
 	private var _normalMapData:BitmapData;
+	private var _terrainMat:StandardTerrainMaterial2Test;
+	private var waterLevel:Number;
 
 	
 	public function MyTemplate(IS_ONLINE:Boolean=false) {
@@ -182,8 +186,9 @@ class MyTemplate extends Template {
 
 		
 		//new BitmapTextureResource(new EDGE().bitmapData)
-		var standardMaterial:StandardTerrainMaterial = new StandardTerrainMaterial( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData), null, null  );
+		var standardMaterial:StandardTerrainMaterial2Test = new StandardTerrainMaterial2Test( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData), null, null  );
 		standardMaterial.transparentPass = true;
+		_terrainMat = standardMaterial;
 		//standardMaterial.opaquePass = false;
 		standardMaterial.alphaThreshold = 1;
 		
@@ -199,7 +204,7 @@ class MyTemplate extends Template {
 		StandardTerrainMaterial.fogNear = 256 * 32;
 		StandardTerrainMaterial.fogColor = settings.viewBackgroundColor;
 		
-		var waterLevel:Number = -20000;
+		waterLevel = -20000;
 		//standardMaterial.waterMode = 1;
 		//standardMaterial.waterLevel = -20000;
 		
@@ -252,13 +257,29 @@ waterMat.alphaThreshold = 2;
 			waterPlane.x = terrainLOD.boundBox.maxX * .5;
 			waterPlane.y = -terrainLOD.boundBox.maxX * .5;
 			waterPlane.z = waterLevel;
-			scene.addChild(waterPlane);
+	//		scene.addChild(waterPlane);
 	scene.addChild(terrainLOD);
 	}
 	
 	override public function onRenderTick(e:Event):void {
 	//	super.onRenderTick(e);
+			
 			cameraController.update();
+			var direction:Vector3D = new Vector3D();
+			var origin:Vector3D = new Vector3D();
+			camera.calculateRay( origin = new Vector3D(), direction, camera.view.width * .5, camera.view.height * .5);
+			direction.normalize();
+			direction.w = -origin.dotProduct(direction);
+			
+			direction = camera.globalToLocal(new Vector3D(0, 0, waterLevel + 1)).subtract( camera.globalToLocal(new Vector3D(0, 0, waterLevel)) );
+			direction.normalize();
+			direction.negate();
+			direction.w = -waterLevel;
+			
+			//throw new Error(camera.globalToLocal(new Vector3D(camera.x, camera.y, camera.z)) + ", "+new Vector3D(camera.x, camera.y, camera.z));
+			
+			//throw new Error(direction + " , "+origin + "::"+camera.x);
+			_terrainMat.waterPlane = direction;
 			renderId++;
 			if (omniLight) {
 				omniLight.x = camera.x;
