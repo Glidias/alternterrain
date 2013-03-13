@@ -2,13 +2,13 @@ package examples
 {
 	import flash.display.Sprite;
 	/**
-	 * Simple single-page (non-textured) LOD (1024x1024 tiles) terrain with normal map texture.
+	 * Simple single-page (non-textured) LOD (1024x1024 tiles) terrain with normal map texture and water level testing. (Still a WIP ..got artifacts)
 	 * @author Glenn Ko
 	 */
-	public class TestLODTerrain extends Sprite
+	public class TestLODTerrainWater extends Sprite
 	{
 		
-		public function TestLODTerrain() 
+		public function TestLODTerrainWater() 
 		{
 			addChild( new MyTemplate( root.loaderInfo.url.slice(0, ("http://").length) === "http://" ) );
 		}
@@ -32,6 +32,7 @@ import alternativa.engine3d.materials.VertexLightTextureMaterial;
 import alternativa.engine3d.objects.Mesh;
 import alternativa.engine3d.objects.WireFrame;
 import alternativa.engine3d.primitives.Box;
+import alternativa.engine3d.primitives.Plane;
 import alternativa.engine3d.resources.BitmapTextureResource;
 import alternativa.engine3d.resources.Geometry;
 import alternterrain.core.*;
@@ -194,12 +195,18 @@ class MyTemplate extends Template {
 		standardMaterial.mistMap = new BitmapTextureResource(new EDGE().bitmapData);
 		
 		StandardTerrainMaterial.fogMode = 1;
-		StandardTerrainMaterial.fogFar = camera.farClipping = 256 * 800;
+		StandardTerrainMaterial.fogFar = camera.farClipping = 256 * 600;
 		StandardTerrainMaterial.fogNear = 256 * 32;
 		StandardTerrainMaterial.fogColor = settings.viewBackgroundColor;
 		
+		var waterLevel:Number = -20000;
+		//standardMaterial.waterMode = 1;
+		//standardMaterial.waterLevel = -20000;
+		
+	
 
-		terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial, 256*1024 );  //new FillMaterial(0xFF0000, 1)
+		terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial, 256 * 1024 );  //new FillMaterial(0xFF0000, 1)
+			
 		// )
 		//terrainLOD.useLighting = false;
 
@@ -229,13 +236,24 @@ class MyTemplate extends Template {
 		omniLight.distance = 1000;
 		scene.addChild(omniLight);
 		
-	//	camera.farClipping = 900000;
+		camera.nearClipping = 40;
+		//camera.farClipping = 900000;
 		//camera.debug = true;
 		camera.addToDebug(Debug.BOUNDS, terrainLOD);
 		camera.addToDebug(Debug.CONTENT, spotlight);
 
-		scene.addChild(terrainLOD);
+	
+		
+		var waterMat:StandardMaterial = new StandardMaterial( new BitmapTextureResource(new BitmapData(4, 4, false, 0x0000FF)), new BitmapTextureResource(new BitmapData(4, 4, false, 0x0000FF)) );
+waterMat.opacityMap = new BitmapTextureResource(new BitmapData(16, 16, true, 0xFFFFFFFF));
+waterMat.alphaThreshold = 2;
 
+			var waterPlane:Plane = new Plane(terrainLOD.boundBox.maxX, terrainLOD.boundBox.maxX, 1, 1, false, false, null,waterMat );
+			waterPlane.x = terrainLOD.boundBox.maxX * .5;
+			waterPlane.y = -terrainLOD.boundBox.maxX * .5;
+			waterPlane.z = waterLevel;
+			scene.addChild(waterPlane);
+	scene.addChild(terrainLOD);
 	}
 	
 	override public function onRenderTick(e:Event):void {

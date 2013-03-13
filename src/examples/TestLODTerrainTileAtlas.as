@@ -283,7 +283,7 @@ class MyTemplate extends Template {
 		omniLight.distance = 1000;
 		scene.addChild(omniLight);
 		
-		camera.farClipping = 900000;
+		//camera.farClipping = 900000;
 		//camera.debug = true;
 		camera.addToDebug(Debug.BOUNDS, terrainLOD);
 		camera.addToDebug(Debug.CONTENT, spotlight);
