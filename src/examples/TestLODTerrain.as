@@ -26,6 +26,7 @@ import alternativa.engine3d.lights.SpotLight;
 import alternativa.engine3d.materials.FillMaterial;
 import alternativa.engine3d.materials.NormalMapSpace;
 import alternativa.engine3d.materials.StandardMaterial;
+import alternativa.engine3d.materials.StandardTerrainMaterial;
 import alternativa.engine3d.materials.TextureMaterial;
 import alternativa.engine3d.materials.VertexLightTextureMaterial;
 import alternativa.engine3d.objects.Mesh;
@@ -180,7 +181,7 @@ class MyTemplate extends Template {
 
 		
 		//new BitmapTextureResource(new EDGE().bitmapData)
-		var standardMaterial:StandardMaterial = new StandardMaterial( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData), null, null  );
+		var standardMaterial:StandardTerrainMaterial = new StandardTerrainMaterial( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData), null, null  );
 		standardMaterial.transparentPass = true;
 		//standardMaterial.opaquePass = false;
 		standardMaterial.alphaThreshold = 1;
@@ -192,10 +193,10 @@ class MyTemplate extends Template {
 		standardMaterial.glossiness = 0;
 		standardMaterial.mistMap = new BitmapTextureResource(new EDGE().bitmapData);
 		
-		StandardMaterial.fogMode = 1;
-		StandardMaterial.fogFar = camera.farClipping = 256 * 600;
-		StandardMaterial.fogNear = 256 * 32;
-		StandardMaterial.fogColor = settings.viewBackgroundColor;
+		StandardTerrainMaterial.fogMode = 1;
+		StandardTerrainMaterial.fogFar = camera.farClipping = 256 * 600;
+		StandardTerrainMaterial.fogNear = 256 * 32;
+		StandardTerrainMaterial.fogColor = settings.viewBackgroundColor;
 		
 
 		terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial, 256*1024 );  //new FillMaterial(0xFF0000, 1)

@@ -23,8 +23,10 @@ package alternativa.engine3d.materials {
 	import alternativa.engine3d.materials.compiler.Procedure;
 	import alternativa.engine3d.materials.compiler.VariableType;
 	import alternativa.engine3d.objects.Surface;
+	import alternativa.engine3d.resources.BitmapTextureResource;
 	import alternativa.engine3d.resources.Geometry;
 	import alternativa.engine3d.resources.TextureResource;
+	import flash.display.BitmapData;
 
 	import avmplus.getQualifiedClassName;
 
@@ -39,6 +41,8 @@ package alternativa.engine3d.materials {
 	use namespace alternativa3d;
 
 	/**
+	 * Same as StandardMaterial but supports fog and mist!
+	 * 
 	 * Material with diffuse, normal, opacity, specular maps and glossiness value. The material is able to draw skin
 	 * with the number of bones in surface no more than 41. To reduce the number of bones in surface can break
 	 * the skin for more surface with fewer bones. Use the method Skin.divide (). To be drawn with this material,
@@ -49,7 +53,7 @@ package alternativa.engine3d.materials {
 	 * @see alternativa.engine3d.core.VertexAttributes#TANGENT4
 	 * @see alternativa.engine3d.objects.Skin#divide()
 	 */
-	public class StandardMaterial extends TextureMaterial {
+	public class StandardTerrainMaterial extends TextureMaterial {
 
 		private static const LIGHT_MAP_BIT:int = 1;
 		private static const GLOSSINESS_MAP_BIT:int = 2;
@@ -72,33 +76,31 @@ package alternativa.engine3d.materials {
 		/**
 		 * @private
 		 */
-		alternativa3d static const DISABLED:int = 0;
+		public static const DISABLED:int = 0;
 		/**
 		 * @private
 		 */
-		alternativa3d static const SIMPLE:int = 1;
+		public static const SIMPLE:int = 1;
 		/**
 		 * @private
 		 */
-		alternativa3d static const ADVANCED:int = 2;
+		public static const ADVANCED:int = 2;
 
 		/**
 		 * @private
 		 */
-		alternativa3d static var fogMode:int = DISABLED;
+		public static var fogMode:int = DISABLED;
 		/**
 		 * @private
 		 */
-		alternativa3d static var fogNear:Number = 1000;
-		/**
-		 * @private
-		 */
-		alternativa3d static var fogFar:Number = 5000;
+		public static var fogNear:Number = 1000;
+	
+		public static var fogFar:Number = 5000;
 
 		/**
 		 * @private
 		 */
-		alternativa3d static var fogMaxDensity:Number = 1;
+		public static var fogMaxDensity:Number = 1;
 
 		/**
 		 * @private
@@ -111,7 +113,14 @@ package alternativa.engine3d.materials {
 		/**
 		 * @private
 		 */
-		alternativa3d static var fogColorB:Number = 0xC8/255;
+		alternativa3d static var fogColorB:Number = 0xC8 / 255;
+		
+		
+		public static function set fogColor(val:uint):void {
+			fogColorR = ((val & 0xFF0000) >> 16) / 255;
+			fogColorG = ((val & 0xFF00) >> 8) / 255;
+			fogColorB = ((val & 0xFF)) / 255;
+		}
 
 		/**
 		 * @private
@@ -258,6 +267,24 @@ package alternativa.engine3d.materials {
 			"add i0.xyz, i0.xyz, t0.xyz",
 			"mov o0, i0"
 		], "outputWithSimpleFog");
+		
+		private static const MIST_APPLY:Array =   [ "#c0=cFogColor",
+                "#s0=sMist",
+				"#v0=vUV",
+				"tex t0, v0, s0 <2d, linear,repeat, miplinear>",
+				"sub t0.y, c0.w, t0.y",
+                "mul i0.xyz, i0.xyz, t0.y",
+				"mul t0.xyz, c0.xyz, t0.x",
+                "add i0.xyz, i0.xyz, t0.xyz",
+				];
+			
+			protected static const applyWithMistProcedure:Procedure = new Procedure(
+				MIST_APPLY.concat()
+            , "applyWithMist");
+			
+			 protected static const outputWithMistProcedure:Procedure = new Procedure(
+               MIST_APPLY.concat( "mov o0, i0" )
+            , "outputWithMist");
 
 		// inputs : position, projected
 		private static const postPassAdvancedFogConstProcedure:Procedure = new Procedure([
@@ -370,17 +397,21 @@ package alternativa.engine3d.materials {
 		 * Brightness of a flare. Multiplies with  <code>specularMap</code> value.
 		 */
 		public var specularPower:Number = 1;
+		
+		
+		public var mistMap:TextureResource; // a fog of war texture
 
 		/**
-		 * Creates a new StandardMaterial instance.
+		 * Creates a new StandardTerrainMaterial instance.
 		 * @param diffuseMap Diffuse map.
 		 * @param normalMap Normal map.
 		 * @param specularMap Specular map.
 		 * @param glossinessMap Glossiness map.
 		 * @param opacityMap Opacity map.
 		 */
-		public function StandardMaterial(diffuseMap:TextureResource = null, normalMap:TextureResource = null, specularMap:TextureResource = null, glossinessMap:TextureResource = null, opacityMap:TextureResource = null) {
+		public function StandardTerrainMaterial(diffuseMap:TextureResource = null, normalMap:TextureResource = null, specularMap:TextureResource = null, glossinessMap:TextureResource = null, opacityMap:TextureResource = null) {
 			super(diffuseMap, opacityMap);
+		
 			this.normalMap = normalMap;
 			this.specularMap = specularMap;
 			this.glossinessMap = glossinessMap;
@@ -395,6 +426,10 @@ package alternativa.engine3d.materials {
 					A3DUtils.checkParent(getDefinitionByName(getQualifiedClassName(normalMap)) as Class, resourceType)) {
 				resources[normalMap] = true;
 			}
+			 if (mistMap != null &&
+                     A3DUtils.checkParent(getDefinitionByName(getQualifiedClassName(mistMap)) as Class, resourceType)) {
+                    resources[mistMap] = true;
+               }
 
 			if (lightMap != null &&
 					A3DUtils.checkParent(getDefinitionByName(getQualifiedClassName(lightMap)) as Class, resourceType)) {
@@ -536,7 +571,7 @@ package alternativa.engine3d.materials {
 		 * @param directionalLight
 		 * @param lightsLength
 		 */
-		private function getProgram(object:Object3D, programs:Array, camera:Camera3D, materialKey:int, opacityMap:TextureResource, alphaTest:int, lightsGroup:Vector.<Light3D>, lightsLength:int, isFirstGroup:Boolean, shadowedLight:Light3D):StandardMaterialProgram {
+		private function getProgram(object:Object3D, programs:Array, camera:Camera3D, materialKey:int, opacityMap:TextureResource, alphaTest:int, lightsGroup:Vector.<Light3D>, lightsLength:int, isFirstGroup:Boolean, shadowedLight:Light3D):StandardTerrainMaterialProgram {
 			// 0 bit - lightmap
 			// 1 bit - glossiness map
 			// 2 bit - opacity map
@@ -549,7 +584,7 @@ package alternativa.engine3d.materials {
 			// 17-18 bit - Shadow Type (PCF, SIMPLE, NONE)
 
 			var key:int = materialKey | (opacityMap != null ? OPACITY_MAP_BIT : 0) | (alphaTest << ALPHA_TEST_OFFSET);
-			var program:StandardMaterialProgram = programs[key];
+			var program:StandardTerrainMaterialProgram = programs[key];
 
 			if (program == null) {
 				var vertexLinker:Linker = new Linker(Context3DProgramType.VERTEX);
@@ -729,6 +764,7 @@ package alternativa.engine3d.materials {
 
 				fragmentLinker.declareVariable("tColor");
 				outputProcedure = opacityMap != null ? getDiffuseOpacityProcedure : getDiffuseProcedure;
+				
 				fragmentLinker.addProcedure(outputProcedure);
 				fragmentLinker.setOutputParams(outputProcedure, "tColor");
 
@@ -740,28 +776,33 @@ package alternativa.engine3d.materials {
 
 				fragmentLinker.addProcedure(_mulLightingProcedure, "tColor", "tTotalLight", "tTotalHighLight");
 
+					if (mistMap != null) {
+						fragmentLinker.addProcedure( fogMode !=0 ? applyWithMistProcedure : outputWithMistProcedure, "tColor");
+					}
 
-//				if (fogMode == SIMPLE || fogMode == ADVANCED) {
-//					fragmentLinker.setOutputParams(_mulLightingProcedure, "tColor");
-//				}
-//				if (fogMode == SIMPLE) {
-//					vertexLinker.addProcedure(passSimpleFogConstProcedure);
-//					vertexLinker.setInputParams(passSimpleFogConstProcedure, positionVar);
-//					fragmentLinker.addProcedure(outputWithSimpleFogProcedure);
-//					fragmentLinker.setInputParams(outputWithSimpleFogProcedure, "tColor");
-//					outputProcedure = outputWithSimpleFogProcedure;
-//				} else if (fogMode == ADVANCED) {
-//					vertexLinker.declareVariable("tProjected");
-//					vertexLinker.setOutputParams(_projectProcedure, "tProjected");
-//					vertexLinker.addProcedure(postPassAdvancedFogConstProcedure);
-//					vertexLinker.setInputParams(postPassAdvancedFogConstProcedure, positionVar, "tProjected");
-//					fragmentLinker.addProcedure(outputWithAdvancedFogProcedure);
-//					fragmentLinker.setInputParams(outputWithAdvancedFogProcedure, "tColor");
-//					outputProcedure = outputWithAdvancedFogProcedure;
-//				}
-
+					///*
+                    if (fogMode == SIMPLE || fogMode == ADVANCED || mistMap!=null ) {
+                       fragmentLinker.setOutputParams(_mulLightingProcedure, "tColor");
+                    }
+                    if (fogMode == SIMPLE) {
+                        vertexLinker.addProcedure(passSimpleFogConstProcedure);
+                       vertexLinker.setInputParams(passSimpleFogConstProcedure, positionVar);
+                        fragmentLinker.addProcedure(outputWithSimpleFogProcedure);
+                        fragmentLinker.setInputParams(outputWithSimpleFogProcedure, "tColor");
+                        outputProcedure = outputWithSimpleFogProcedure;
+                    } else if (fogMode == ADVANCED) {
+                       vertexLinker.declareVariable("tProjected");
+                        vertexLinker.setOutputParams(_projectProcedure, "tProjected");
+                        vertexLinker.addProcedure(postPassAdvancedFogConstProcedure);
+                        vertexLinker.setInputParams(postPassAdvancedFogConstProcedure, positionVar, "tProjected");
+                        fragmentLinker.addProcedure(outputWithAdvancedFogProcedure);
+                        fragmentLinker.setInputParams(outputWithAdvancedFogProcedure, "tColor");
+                        outputProcedure = outputWithAdvancedFogProcedure;
+                    }
+				//	*/
+				
 				fragmentLinker.varyings = vertexLinker.varyings;
-				program = new StandardMaterialProgram(vertexLinker, fragmentLinker, (shadowedLight != null) ? 1 : lightsLength);
+				program = new StandardTerrainMaterialProgram(vertexLinker, fragmentLinker, (shadowedLight != null) ? 1 : lightsLength);
 
 				program.upload(camera.context3D);
 				programs[key] = program;
@@ -769,7 +810,7 @@ package alternativa.engine3d.materials {
 			return program;
 		}
 
-		private function addDrawUnits(program:StandardMaterialProgram, camera:Camera3D, surface:Surface, geometry:Geometry, opacityMap:TextureResource, lights:Vector.<Light3D>, lightsLength:int, isFirstGroup:Boolean, shadowedLight:Light3D, opaqueOption:Boolean, transparentOption:Boolean, objectRenderPriority:int):void {
+		private function addDrawUnits(program:StandardTerrainMaterialProgram, camera:Camera3D, surface:Surface, geometry:Geometry, opacityMap:TextureResource, lights:Vector.<Light3D>, lightsLength:int, isFirstGroup:Boolean, shadowedLight:Light3D, opaqueOption:Boolean, transparentOption:Boolean, objectRenderPriority:int):void {
 			// Buffers
 			var positionBuffer:VertexBuffer3D = geometry.getVertexBuffer(VertexAttributes.POSITION);
 			var uvBuffer:VertexBuffer3D = geometry.getVertexBuffer(VertexAttributes.TEXCOORDS[0]);
@@ -942,47 +983,55 @@ package alternativa.engine3d.materials {
 				camera.renderer.addDrawUnit(drawUnit, objectRenderPriority >= 0 ? objectRenderPriority : Renderer.TRANSPARENT_SORT);
 			}
 
-//			if (fogMode == SIMPLE || fogMode == ADVANCED) {
-//				var lm:Transform3D = object.localToCameraTransform;
-//				var dist:Number = fogFar - fogNear;
-//				drawUnit.setVertexConstantsFromNumbers(program.vertexShader.getVariableIndex("cFogSpace"), lm.i/dist, lm.j/dist, lm.k/dist, (lm.l - fogNear)/dist);
-//				drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogRange"), fogMaxDensity, 1, 0, 1 - fogMaxDensity);
-//			}
-//			if (fogMode == SIMPLE) {
-//				drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogColor"), fogColorR, fogColorG, fogColorB);
-//			}
-//			if (fogMode == ADVANCED) {
-//				if (fogTexture == null) {
-//					var bmd:BitmapData = new BitmapData(32, 1, false, 0xFF0000);
-//					for (i = 0; i < 32; i++) {
-//						bmd.setPixel(i, 0, ((i/32)*255) << 16);
-//					}
-//					fogTexture = new BitmapTextureResource(bmd);
-//					fogTexture.upload(camera.context3D);
-//				}
-//				var cLocal:Transform3D = camera.localToGlobalTransform;
-//				var halfW:Number = camera.view.width/2;
-//				var leftX:Number = -halfW*cLocal.a + camera.focalLength*cLocal.c;
-//				var leftY:Number = -halfW*cLocal.e + camera.focalLength*cLocal.g;
-//				var rightX:Number = halfW*cLocal.a + camera.focalLength*cLocal.c;
-//				var rightY:Number = halfW*cLocal.e + camera.focalLength*cLocal.g;
-//				// Finding UV
-//				var angle:Number = (Math.atan2(leftY, leftX) - Math.PI/2);
-//				if (angle < 0) angle += Math.PI*2;
-//				var dx:Number = rightX - leftX;
-//				var dy:Number = rightY - leftY;
-//				var lens:Number = Math.sqrt(dx*dx + dy*dy);
-//				leftX /= lens;
-//				leftY /= lens;
-//				rightX /= lens;
-//				rightY /= lens;
-//				var uScale:Number = Math.acos(leftX*rightX + leftY*rightY)/Math.PI/2;
-//				var uRight:Number = angle/Math.PI/2;
-//
-//				drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogConsts"), 0.5*uScale, 0.5 - uRight, 0);
-//				drawUnit.setTextureAt(program.fragmentShader.getVariableIndex("sFogTexture"), fogTexture._texture);
-//			}
+			///*
+			if (fogMode == SIMPLE || fogMode == ADVANCED) {
+				var lm:Transform3D = object.localToCameraTransform;
+				var dist:Number = fogFar - fogNear;
+				drawUnit.setVertexConstantsFromNumbers(program.vertexShader.getVariableIndex("cFogSpace"), lm.i/dist, lm.j/dist, lm.k/dist, (lm.l - fogNear)/dist);
+				drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogRange"), fogMaxDensity, 1, 0, 1 - fogMaxDensity);
+			}
+			
+			if (fogMode == SIMPLE  || mistMap != null) {
+                    drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogColor"), fogColorR, fogColorG, fogColorB, 1);
+					
+              }
+			if (mistMap != null) drawUnit.setTextureAt(program.fragmentShader.getVariableIndex("sMist"), mistMap._texture);
+			
+			if (fogMode == ADVANCED) {
+				if (fogTexture == null) {
+					var bmd:BitmapData = new BitmapData(32, 1, false, 0xFF0000);
+					for (i = 0; i < 32; i++) {
+						bmd.setPixel(i, 0, ((i/32)*255) << 16);
+					}
+					fogTexture = new BitmapTextureResource(bmd);
+					fogTexture.upload(camera.context3D);
+				}
+				var cLocal:Transform3D = camera.localToGlobalTransform;
+				var halfW:Number = camera.view.width/2;
+				var leftX:Number = -halfW*cLocal.a + camera.focalLength*cLocal.c;
+				var leftY:Number = -halfW*cLocal.e + camera.focalLength*cLocal.g;
+				var rightX:Number = halfW*cLocal.a + camera.focalLength*cLocal.c;
+				var rightY:Number = halfW*cLocal.e + camera.focalLength*cLocal.g;
+				// Finding UV
+				var angle:Number = (Math.atan2(leftY, leftX) - Math.PI/2);
+				if (angle < 0) angle += Math.PI*2;
+				var dx:Number = rightX - leftX;
+				var dy:Number = rightY - leftY;
+				var lens:Number = Math.sqrt(dx*dx + dy*dy);
+				leftX /= lens;
+				leftY /= lens;
+				rightX /= lens;
+				rightY /= lens;
+				var uScale:Number = Math.acos(leftX*rightX + leftY*rightY)/Math.PI/2;
+				var uRight:Number = angle/Math.PI/2;
+
+				drawUnit.setFragmentConstantsFromNumbers(program.fragmentShader.getVariableIndex("cFogConsts"), 0.5*uScale, 0.5 - uRight, 0);
+				drawUnit.setTextureAt(program.fragmentShader.getVariableIndex("sFogTexture"), fogTexture._texture);
+			}
+			//*/
+			
 		}
+		
 
 		private static var lightGroup:Vector.<Light3D> = new Vector.<Light3D>();
 		private static var shadowGroup:Vector.<Light3D> = new Vector.<Light3D>();
@@ -1075,7 +1124,7 @@ package alternativa.engine3d.materials {
 
 			// Iterate groups
 			var materialKey:int;
-			var program:StandardMaterialProgram;
+			var program:StandardTerrainMaterialProgram;
 
 			if (groupsCount == 0 && shadowGroupLength == 0) {
 				// There is only Ambient light on the scene
@@ -1215,7 +1264,7 @@ package alternativa.engine3d.materials {
 		 * @inheritDoc
 		 */
 		override public function clone():Material {
-			var res:StandardMaterial = new StandardMaterial(diffuseMap, normalMap, specularMap, glossinessMap, opacityMap);
+			var res:StandardTerrainMaterial = new StandardTerrainMaterial(diffuseMap, normalMap, specularMap, glossinessMap, opacityMap);
 			res.clonePropertiesFrom(this);
 			return res;
 		}
@@ -1225,7 +1274,7 @@ package alternativa.engine3d.materials {
 		 */
 		override protected function clonePropertiesFrom(source:Material):void {
 			super.clonePropertiesFrom(source);
-			var sMaterial:StandardMaterial = StandardMaterial(source);
+			var sMaterial:StandardTerrainMaterial = StandardTerrainMaterial(source);
 			glossiness = sMaterial.glossiness;
 			specularPower = sMaterial.specularPower;
 			_normalMapSpace = sMaterial._normalMapSpace;
@@ -1241,7 +1290,7 @@ import alternativa.engine3d.materials.compiler.Linker;
 
 import flash.display3D.Context3D;
 
-class StandardMaterialProgram extends ShaderProgram {
+class StandardTerrainMaterialProgram extends ShaderProgram {
 
 	public var aPosition:int = -1;
 	public var aUV:int = -1;
@@ -1265,7 +1314,7 @@ class StandardMaterialProgram extends ShaderProgram {
 	public var cAxis:Vector.<int>;
 	public var cColor:Vector.<int>;
 
-	public function StandardMaterialProgram(vertex:Linker, fragment:Linker, numLigths:int) {
+	public function StandardTerrainMaterialProgram(vertex:Linker, fragment:Linker, numLigths:int) {
 		super(vertex, fragment);
 
 		cPosition = new Vector.<int>(numLigths);
