@@ -86,6 +86,7 @@ class MyTemplate extends Template {
 	private var _normalMapData:BitmapData;
 	private var _terrainMat:StandardTerrainMaterial2Test;
 	private var waterLevel:Number;
+	private var _debugField:TextField = new TextField();
 
 	
 	public function MyTemplate(IS_ONLINE:Boolean=false) {
@@ -99,6 +100,11 @@ class MyTemplate extends Template {
 		
 		_normalMapData = new NORMAL_MAP().bitmapData;
 		addEventListener(Event.ADDED_TO_STAGE, addedToStage);
+		
+		_debugField.autoSize = "left";
+		_debugField.background = true;
+		_debugField.backgroundColor = 0xFFFFFF;
+		
 	}
 	
 
@@ -128,7 +134,7 @@ class MyTemplate extends Template {
 		stage.addEventListener(KeyboardEvent.KEY_DOWN, onkeyDowN)
 		init();
 		
-		
+		addChild(_debugField);
 	}
 	
 	
@@ -269,14 +275,17 @@ waterMat.alphaThreshold = 2;
 			var direction:Vector3D;
 			///*
 			// Create some dummy points in global space to convert to local coordinate space of camera, to find direction vector
-			direction = camera.globalToLocal(new Vector3D(0, 0, waterLevel+1)).subtract( camera.globalToLocal(new Vector3D(0, 0,waterLevel)) );
+			var pointWaterOrigin:Vector3D = camera.globalToLocal(new Vector3D(0, 0, waterLevel));
+			direction = camera.globalToLocal(new Vector3D(0, 0, waterLevel+1)).subtract( pointWaterOrigin );
 			direction.normalize();
 			direction.negate();
-			direction.w = -waterLevel;
+			direction.w = direction.dotProduct(pointWaterOrigin);
+		
 			//*/
 
+			_debugField.text = String(direction + ", " + direction.w);
 			_terrainMat.waterPlane = direction;
-			
+
 			renderId++;
 			if (omniLight) {
 				omniLight.x = camera.x;
