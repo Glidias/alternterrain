@@ -265,22 +265,18 @@ waterMat.alphaThreshold = 2;
 	//	super.onRenderTick(e);
 			
 			cameraController.update();
-			var direction:Vector3D = new Vector3D();
-			var origin:Vector3D = new Vector3D();
-			camera.calculateRay( origin = new Vector3D(), direction, camera.view.width * .5, camera.view.height * .5);
+
+			var direction:Vector3D;
+			///*
+			// Create some dummy points in global space to convert to local coordinate space of camera, to find direction vector
+			direction = camera.globalToLocal(new Vector3D(0, 0, waterLevel+1)).subtract( camera.globalToLocal(new Vector3D(0, 0,waterLevel)) );
 			direction.normalize();
-			direction.w = -origin.dotProduct(direction);
-			
-		//	direction = camera.globalToLocal(new Vector3D(0, waterLevel+1, 0)).subtract( camera.globalToLocal(new Vector3D(0, waterLevel, 0)) );
-		//	direction.normalize();
-			//direction.negate();
-		//	direction.w = -waterLevel;
-			//throw new Error([direction.x, direction.y, direction.z, direction.w]);
-			
-			//throw new Error(camera.globalToLocal(new Vector3D(camera.x, camera.y, camera.z)) + ", "+new Vector3D(camera.x, camera.y, camera.z));
-			
-			//throw new Error(direction + " , "+origin + "::"+camera.x);
+			direction.negate();
+			direction.w = -waterLevel;
+			//*/
+
 			_terrainMat.waterPlane = direction;
+			
 			renderId++;
 			if (omniLight) {
 				omniLight.x = camera.x;

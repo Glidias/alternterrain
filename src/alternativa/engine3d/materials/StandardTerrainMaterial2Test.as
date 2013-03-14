@@ -124,7 +124,7 @@ package alternativa.engine3d.materials {
 			fogColorB = ((val & 0xFF)) / 255;
 		}
 		
-		public var waterPlane:Vector3D = new Vector3D(0,0,1,0);
+		public var waterPlane:Vector3D = new Vector3D(0,0,1,-1);
 
 		/**
 		 * @private
@@ -615,7 +615,7 @@ package alternativa.engine3d.materials {
 						fragmentLinker.setOutputParams(_addLightMapProcedure, "tTotalLight");
 					}
 				}
-				else{
+				else {
 					// сбросить tTotalLight tTotalHighLight
 					fragmentLinker.declareVariable("cAmbientColor", VariableType.CONSTANT);
 					fragmentLinker.addProcedure(_ambientLightProcedure);
@@ -814,142 +814,30 @@ package alternativa.engine3d.materials {
 			return program;
 		}
 		
-		private var _obliqueTransform:Transform3D = new Transform3D();
-		private var _inverseTransform:Transform3D = new Transform3D();
-		/*
-		private function calculateTransformFromPerspective(transform:Transform3D):void {
-			_obliqueTransform.copy(transform);
-			
-			var cx : Number = waterPlane.x;
-			var cy : Number = waterPlane.y;
-			var cz : Number = waterPlane.z;
-			var cw : Number = -waterPlane.w+.05;
-			var signX : Number = cx >= 0 ? 1 : -1;
-			var signY : Number = cy >= 0 ? 1 : -1;
-			var p : Vector3D = new Vector3D(signX, signY, 1, 1);
 		
-			_inverseTransform.calculateInversion(transform);
-		//	inverse.invert()
-			var q : Vector3D = _inverseTransform.transformVector(p);
-			_matrix.copyRowTo(3, p);
-			var a : Number = (q.x*p.x + q.y*p.y + q.z*p.z + q.w*p.w)/(cx*q.x + cy*q.y+ cz*q.z + cw*q.w);
-			_matrix.copyRowFrom(2, new Vector3D(cx*a, cy*a, cz*a, cw*a));
-		}
-		*/
 		
 		private var _matrix:Matrix3D = new Matrix3D();
-		private var _objDummy:Object3D = new Object3D();
-		private var _lastRow:Vector3D = new Vector3D();
-		
-		/*
-		private function calculateTransformFromPerspectiveTrans2(transform:Transform3D, camera:Camera3D) : void
-		{
-			//var matrix:Matrix3D = new Matrix3D(Vector.<Number>([transform.a, transform.e, transform.i, 0, transform.b, transform.f, transform.j, 0, transform.c, transform.g, transform.k, 0, transform.d, transform.h, transform.l, 1]));
-			
-			var matrix:Matrix3D = new Matrix3D(new <Number>[transform.a*camera.m0, transform.b*camera.m0, transform.c*camera.m0, transform.d*camera.m0, 
-																transform.e*camera.m5, transform.f*camera.m5, transform.g*camera.m5, transform.h*camera.m5, 
-																transform.i*camera.m10, transform.j*camera.m10, transform.k*camera.m10, transform.l*camera.m10 + camera.m14, 
-																transform.i, transform.j, transform.k, transform.l]);
-			
-															
-			_matrix.copyFrom(matrix);
-			var firstData:Vector.<Number> = _matrix.rawData;
-			_matrix.transpose();
-				
-			//throw new Error(_matrix.rawData + ":::" + firstData);
-			var cx : Number = waterPlane.x;
-			var cy : Number = waterPlane.y;
-			var cz : Number = waterPlane.z;
-			var cw : Number = -waterPlane.w+.05;
-			var signX : Number = cx >= 0 ? 1 : -1;
-			var signY : Number = cy >= 0 ? 1 : -1;
-			var p : Vector3D = new Vector3D(signX, signY, 1, 1);
-			var inverse : Matrix3D = _matrix.clone();
-			inverse.invert();
-			var q : Vector3D = inverse.transformVector(p);
-			
-			
-			_matrix.copyRowTo(3, p);
-			
-		//throw new Error(new Vector3D(transform.i, transform.j, transform.k, transform.l) + ", " + p + ", " + _matrix.rawData[3]);
-			//_matrix.copyColumnTo(3, p);
-			
-			var a : Number = (q.x*p.x + q.y*p.y + q.z*p.z + q.w*p.w)/(cx*q.x + cy*q.y+ cz*q.z + cw*q.w);
-			_matrix.copyRowFrom(2, new Vector3D(cx * a, cy * a, cz * a, cw * a));
-			//_matrix.copyColumnFrom(2, new Vector3D(cx * a, cy * a, cz * a, cw * a));
-			
-			_matrix.transpose();
-			var data:Vector.<Number> = _matrix.rawData;
-			data[0] /= camera.m0; data[1] /= camera.m0; data[2] /= camera.m0; data[3] /= camera.m0;
-			data[4] /= camera.m5; data[5] /= camera.m5; data[6] /= camera.m5; data[7] /= camera.m5;
-			data[8] /= camera.m10; data[9] /= camera.m10; data[10] /= camera.m10; data[11] /= camera.m10;
-			data[11] -= camera.m14;
-			
-		//	_lastRow = new Vector3D(transform.i, transform.j, transform.k, transform.l);
-			//matrix.rawData = data;
-			//matrix.transpose();
-			
-			//_objDummy.matrix = _matrix;
-			//_objDummy.composeTransforms();
-			
-			//_obliqueTransform = _objDummy.transform;
-			
-			_obliqueTransform.a = data[0];
-			_obliqueTransform.b = data[1];
-			_obliqueTransform.c = data[2];
-			_obliqueTransform.d = data[3];
-			
-			_obliqueTransform.e = data[4];
-			_obliqueTransform.f = data[5];
-			_obliqueTransform.g = data[6];
-			_obliqueTransform.h = data[7];
-			
-			_obliqueTransform.i = data[8];
-			_obliqueTransform.j = data[9];
-			_obliqueTransform.k = data[10];
-			_obliqueTransform.l = data[11];
-	
-		}
-		*/
-		
-		
+
 		private function getMatrix(transform:Transform3D):Matrix3D {
-			return  new Matrix3D(Vector.<Number>([transform.a, transform.e, transform.i, 0, transform.b, transform.f, transform.j, 0, transform.c, transform.g, transform.k, transform.l, 0,0, 0, 1]));
+			return  new Matrix3D(Vector.<Number>([transform.a, transform.e, transform.i, 0, transform.b, transform.f, transform.j, 0, transform.c, transform.g, transform.k, 0, transform.d,transform.h, transform.l, 1]));
 		}
 		
-				private function calculateTransformFromPerspectiveTrans2(transform:Transform3D, camera:Camera3D, obj:Object3D) : void
-		{
-			//var matrix:Matrix3D = new Matrix3D(Vector.<Number>([transform.a, transform.e, transform.i, 0, transform.b, transform.f, transform.j, 0, transform.c, transform.g, transform.k, 0, transform.d, transform.h, transform.l, 1]));
+		private function updateMatrixToOblique(val:Matrix3D, transform:Transform3D):void {
+																		
+			_matrix.copyFrom(val);
 			
-			var matrix:Matrix3D = new Matrix3D(new <Number>[transform.a*camera.m0, transform.b*camera.m0, transform.c*camera.m0, transform.d*camera.m0, 
-																transform.e*camera.m5, transform.f*camera.m5, transform.g*camera.m5, transform.h*camera.m5, 
-																transform.i*camera.m10, transform.j*camera.m10, transform.k*camera.m10, transform.l*camera.m10 + camera.m14, 
+			var raw:Vector.<Number> = _matrix.rawData;
+			/*
+			raw[12] = transform.i;
+			raw[13] = transform.j;
+			raw[14] = transform.k;
+			raw[15] = transform.l;
+			*/
+			_matrix.rawData = raw;
 		
-																transform.i, transform.j, transform.k, transform.l]);
-		var raw:Vector.<Number> = matrix.rawData;
-				raw[uint(0)] = camera.m0;
-				raw[uint(5)] = camera.m5;
-				raw[uint(10)] = camera.m10;
-				raw[uint(11)] = 1;
-				raw[uint(1)] = raw[uint(2)] = raw[uint(3)] = raw[uint(4)] =
-				raw[uint(6)] = raw[uint(7)] = raw[uint(8)] = raw[uint(9)] =
-				raw[uint(12)] = raw[uint(13)] = raw[uint(15)] = 0;
-				raw[uint(14)] = camera.m14;
-				matrix.rawData = raw;
-															
-			_matrix.copyFrom(matrix);
-			
-			var firstData:Vector.<Number> = _matrix.rawData;
 			_matrix.transpose();
 				
 			//throw new Error(_matrix.rawData + ":::" + firstData);
-			//var nearClip:Vector3D = new Vector3D(0, 0, 1, 0);
-			//waterPlane = getMatrix( obj.cameraToLocalTransform).transformVector(nearClip);
-			
-		//	throw new Error(nearClip + ", " + waterPlane);
-			//waterPlane.z *= -1;
-			//if (waterPlane.w >= 0) waterPlane.w = -1;
-			
 			var cx : Number = waterPlane.x;
 			var cy : Number = waterPlane.y;
 			var cz : Number = waterPlane.z;
@@ -960,41 +848,17 @@ package alternativa.engine3d.materials {
 			var inverse : Matrix3D = _matrix.clone();
 			inverse.invert();
 			var q : Vector3D = inverse.transformVector(p);
-			//q = new Vector3D(waterPlane.x, waterPlane.y, waterPlane.z, waterPlane.w);
 			
-			_matrix.copyRowTo(3, p);
-			
-		//throw new Error(new Vector3D(transform.i, transform.j, transform.k, transform.l) + ", " + p + ", " + _matrix.rawData[3]);
-			//_matrix.copyColumnTo(3, p);
+			_matrix.copyRowTo(3, p); 
+			//_matrix.copyColumnTo(3, p);	
 			
 			var a : Number = (q.x*p.x + q.y*p.y + q.z*p.z + q.w*p.w)/(cx*q.x + cy*q.y+ cz*q.z + cw*q.w);
 			_matrix.copyRowFrom(2, new Vector3D(cx * a, cy * a, cz * a, cw * a));
 			//_matrix.copyColumnFrom(2, new Vector3D(cx * a, cy * a, cz * a, cw * a));
 			
 			_matrix.transpose();
-			var data:Vector.<Number> = _matrix.rawData;
-			/*
-			data[0] /= camera.m0; data[1] /= camera.m0; data[2] /= camera.m0; data[3] /= camera.m0;
-			data[4] /= camera.m5; data[5] /= camera.m5; data[6] /= camera.m5; data[7] /= camera.m5;
-			data[8] /= camera.m10; data[9] /= camera.m10; data[10] /= camera.m10; data[11] /= camera.m10;
-			data[11] -= camera.m14;
-			*/
 			
-			_obliqueTransform.a = data[0];
-			_obliqueTransform.b = data[1];
-			_obliqueTransform.c = data[2];
-			_obliqueTransform.d = data[3];
-			
-			_obliqueTransform.e = data[4];
-			_obliqueTransform.f = data[5];
-			_obliqueTransform.g = data[6];
-			_obliqueTransform.h = data[7];
-			
-			_obliqueTransform.i = data[8];
-			_obliqueTransform.j = data[9];
-			_obliqueTransform.k = data[10];
-			_obliqueTransform.l = data[11];
-	
+			val.rawData = _matrix.rawData;
 		}
 
 		private function addDrawUnits(program:StandardTerrainMaterialProgram, camera:Camera3D, surface:Surface, geometry:Geometry, opacityMap:TextureResource, lights:Vector.<Light3D>, lightsLength:int, isFirstGroup:Boolean, shadowedLight:Light3D, opaqueOption:Boolean, transparentOption:Boolean, objectRenderPriority:int):void {
@@ -1017,48 +881,56 @@ package alternativa.engine3d.materials {
 			drawUnit.setVertexBufferAt(program.aUV, uvBuffer, geometry._attributesOffsets[VertexAttributes.TEXCOORDS[0]], VertexAttributes.FORMATS[VertexAttributes.TEXCOORDS[0]]);
 
 			// Constants
-			object.setTransformConstants(drawUnit, surface, program.vertexShader, camera);
+			object.setTransformConstants(drawUnit, surface, program.vertexShader, camera);	
+			drawUnit.setProjectionConstants(camera, program.cProjMatrix, object.localToCameraTransform);
 			
-			//calculateTransformFromPerspectiveTrans2(object.localToCameraTransform, camera, object);
+			// -------------  Change drawUnit projection constants on the fly!!
+			var yMax:Number = camera.nearClipping * Math.tan(camera.fov * .5);
+		//	throw new Error(yMax + ", "+camera.view.height*
+			var xMax:Number = yMax * (camera.view.width / camera.view.height);
+			
+			// Is the starting perspective matrix ( before upgrading to oblique) correct?
 			var perspectMatrix:Matrix3D = new Matrix3D();
 				var raw:Vector.<Number> = perspectMatrix.rawData;
-				raw[uint(0)] = camera.m0;
-				raw[uint(5)] = camera.m5;
+				///*
+				raw[uint(0)] =  camera.m0; 		//camera.nearClipping / xMax;
+				raw[uint(5)] = camera.m5;		 //camera.nearClipping / yMax;
 				raw[uint(10)] = camera.m10;
-				raw[uint(11)] = 1;
+				raw[uint(11)] = 1;  		//  * -camera.nearClipping
+				
 				raw[uint(1)] = raw[uint(2)] = raw[uint(3)] = raw[uint(4)] =
 				raw[uint(6)] = raw[uint(7)] = raw[uint(8)] = raw[uint(9)] =
 				raw[uint(12)] = raw[uint(13)] = raw[uint(15)] = 0;
+				
 				raw[uint(14)] = camera.m14;
+			//	*/
 				perspectMatrix.rawData = raw;
 				
+				// Upgrade matrix to oblique clip projection
+				updateMatrixToOblique(perspectMatrix, object.localToCameraTransform);
+				
+				
 				var localToCameraSpace:Matrix3D = getMatrix(object.localToCameraTransform);
-				localToCameraSpace.transpose();
-				localToCameraSpace.prepend(perspectMatrix);
-				
-				
-			drawUnit.setProjectionConstants(camera, program.cProjMatrix, object.localToCameraTransform);
-			
-			raw = localToCameraSpace.rawData;
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 0] = raw[0];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 1] = raw[1];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 2] = raw[2];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 3] = raw[3];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 4] = raw[4];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 5] = raw[5];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 6] = raw[6];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 7] = raw[7];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 8] = raw[8];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 9] = raw[9];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 10] = raw[10];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 11] = raw[11];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 12] = raw[12];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 13] = raw[13];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 14] = raw[14];
-			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 15] = raw[15];
+				localToCameraSpace.transpose();			    // why need to transpose?
+				localToCameraSpace.prepend(perspectMatrix);  // why need to prepend?
 
+		
+			raw = localToCameraSpace.rawData;
+			///*  last 5 values force fix!
+		//	raw[11] = object.localToCameraTransform.l * camera.m10 +camera.m14;
+			// Technically, only the 3rd row is affected, so restore back intended values for 4th row??
+			raw[12] = object.localToCameraTransform.i;
+			raw[13] = object.localToCameraTransform.j;
+			raw[14] = object.localToCameraTransform.k;
+			raw[15] = object.localToCameraTransform.l;
+			//*/
+			//	throw new Error(raw.join("\n") + "\n:::\n" +drawUnit.vertexConstants.slice( (program.cProjMatrix << 2),  (program.cProjMatrix << 2) + 16).join("\n"));
 			
-			throw new Error(localToCameraSpace.rawData.join("\n") + "\n:::\n" +drawUnit.vertexConstants.slice( (program.cProjMatrix<<2),  (program.cProjMatrix << 2)+16).join("\n"));
+			drawUnit.setVertexConstantsFromVector(program.cProjMatrix, raw, 16 >> 2); 
+
+			// -------------------------
+			
+			
 			 // Set options for a surface. X should be 0.
 			drawUnit.setFragmentConstantsFromNumbers(program.cSurface, 0, glossiness, specularPower, 1);
 			drawUnit.setFragmentConstantsFromNumbers(program.cThresholdAlpha, alphaThreshold, 0, 0, alpha);
