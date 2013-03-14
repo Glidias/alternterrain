@@ -914,7 +914,7 @@ package alternativa.engine3d.materials {
 		
 		
 		private function getMatrix(transform:Transform3D):Matrix3D {
-			return  new Matrix3D(Vector.<Number>([transform.a, transform.e, transform.i, 0, transform.b, transform.f, transform.j, 0, transform.c, transform.g, transform.k, 0, transform.d, transform.h, transform.l, 1]));
+			return  new Matrix3D(Vector.<Number>([transform.a, transform.e, transform.i, 0, transform.b, transform.f, transform.j, 0, transform.c, transform.g, transform.k, transform.l, 0,0, 0, 1]));
 		}
 		
 				private function calculateTransformFromPerspectiveTrans2(transform:Transform3D, camera:Camera3D, obj:Object3D) : void
@@ -924,10 +924,21 @@ package alternativa.engine3d.materials {
 			var matrix:Matrix3D = new Matrix3D(new <Number>[transform.a*camera.m0, transform.b*camera.m0, transform.c*camera.m0, transform.d*camera.m0, 
 																transform.e*camera.m5, transform.f*camera.m5, transform.g*camera.m5, transform.h*camera.m5, 
 																transform.i*camera.m10, transform.j*camera.m10, transform.k*camera.m10, transform.l*camera.m10 + camera.m14, 
+		
 																transform.i, transform.j, transform.k, transform.l]);
-			
+		var raw:Vector.<Number> = matrix.rawData;
+				raw[uint(0)] = camera.m0;
+				raw[uint(5)] = camera.m5;
+				raw[uint(10)] = camera.m10;
+				raw[uint(11)] = 1;
+				raw[uint(1)] = raw[uint(2)] = raw[uint(3)] = raw[uint(4)] =
+				raw[uint(6)] = raw[uint(7)] = raw[uint(8)] = raw[uint(9)] =
+				raw[uint(12)] = raw[uint(13)] = raw[uint(15)] = 0;
+				raw[uint(14)] = camera.m14;
+				matrix.rawData = raw;
 															
 			_matrix.copyFrom(matrix);
+			
 			var firstData:Vector.<Number> = _matrix.rawData;
 			_matrix.transpose();
 				
@@ -962,10 +973,12 @@ package alternativa.engine3d.materials {
 			
 			_matrix.transpose();
 			var data:Vector.<Number> = _matrix.rawData;
+			/*
 			data[0] /= camera.m0; data[1] /= camera.m0; data[2] /= camera.m0; data[3] /= camera.m0;
 			data[4] /= camera.m5; data[5] /= camera.m5; data[6] /= camera.m5; data[7] /= camera.m5;
 			data[8] /= camera.m10; data[9] /= camera.m10; data[10] /= camera.m10; data[11] /= camera.m10;
 			data[11] -= camera.m14;
+			*/
 			
 			_obliqueTransform.a = data[0];
 			_obliqueTransform.b = data[1];
@@ -1006,10 +1019,46 @@ package alternativa.engine3d.materials {
 			// Constants
 			object.setTransformConstants(drawUnit, surface, program.vertexShader, camera);
 			
-			calculateTransformFromPerspectiveTrans2(object.localToCameraTransform, camera, object);
-			drawUnit.setProjectionConstants(camera, program.cProjMatrix, _obliqueTransform);
+			//calculateTransformFromPerspectiveTrans2(object.localToCameraTransform, camera, object);
+			var perspectMatrix:Matrix3D = new Matrix3D();
+				var raw:Vector.<Number> = perspectMatrix.rawData;
+				raw[uint(0)] = camera.m0;
+				raw[uint(5)] = camera.m5;
+				raw[uint(10)] = camera.m10;
+				raw[uint(11)] = 1;
+				raw[uint(1)] = raw[uint(2)] = raw[uint(3)] = raw[uint(4)] =
+				raw[uint(6)] = raw[uint(7)] = raw[uint(8)] = raw[uint(9)] =
+				raw[uint(12)] = raw[uint(13)] = raw[uint(15)] = 0;
+				raw[uint(14)] = camera.m14;
+				perspectMatrix.rawData = raw;
+				
+				var localToCameraSpace:Matrix3D = getMatrix(object.localToCameraTransform);
+				localToCameraSpace.transpose();
+				localToCameraSpace.prepend(perspectMatrix);
+				
+				
+			drawUnit.setProjectionConstants(camera, program.cProjMatrix, object.localToCameraTransform);
 			
+			raw = localToCameraSpace.rawData;
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 0] = raw[0];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 1] = raw[1];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 2] = raw[2];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 3] = raw[3];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 4] = raw[4];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 5] = raw[5];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 6] = raw[6];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 7] = raw[7];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 8] = raw[8];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 9] = raw[9];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 10] = raw[10];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 11] = raw[11];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 12] = raw[12];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 13] = raw[13];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 14] = raw[14];
+			drawUnit.vertexConstants[(program.cProjMatrix << 2) + 15] = raw[15];
+
 			
+			throw new Error(localToCameraSpace.rawData.join("\n") + "\n:::\n" +drawUnit.vertexConstants.slice( (program.cProjMatrix<<2),  (program.cProjMatrix << 2)+16).join("\n"));
 			 // Set options for a surface. X should be 0.
 			drawUnit.setFragmentConstantsFromNumbers(program.cSurface, 0, glossiness, specularPower, 1);
 			drawUnit.setFragmentConstantsFromNumbers(program.cThresholdAlpha, alphaThreshold, 0, 0, alpha);

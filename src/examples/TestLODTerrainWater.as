@@ -271,10 +271,11 @@ waterMat.alphaThreshold = 2;
 			direction.normalize();
 			direction.w = -origin.dotProduct(direction);
 			
-			direction = camera.globalToLocal(new Vector3D(0, 0, waterLevel + 1)).subtract( camera.globalToLocal(new Vector3D(0, 0, waterLevel)) );
-			direction.normalize();
-			direction.negate();
-			direction.w = -waterLevel;
+		//	direction = camera.globalToLocal(new Vector3D(0, waterLevel+1, 0)).subtract( camera.globalToLocal(new Vector3D(0, waterLevel, 0)) );
+		//	direction.normalize();
+			//direction.negate();
+		//	direction.w = -waterLevel;
+			//throw new Error([direction.x, direction.y, direction.z, direction.w]);
 			
 			//throw new Error(camera.globalToLocal(new Vector3D(camera.x, camera.y, camera.z)) + ", "+new Vector3D(camera.x, camera.y, camera.z));
 			
