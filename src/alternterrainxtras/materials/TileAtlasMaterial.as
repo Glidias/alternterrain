@@ -1502,6 +1502,7 @@ package alternterrainxtras.materials {
                 }
                 
                  var lm:Transform3D = object.localToCameraTransform;
+				 //lm.i*camera.m10, lm.j*camera.m10, lm.k*camera.m10, lm.l*camera.m10+camera.m14
                 drawUnit.setVertexConstantsFromNumbers(program.vertexShader.getVariableIndex("cZSpace"), lm.i, lm.j, lm.k, lm.l);
                 
 				///*

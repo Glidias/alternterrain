@@ -29,6 +29,7 @@ package alternativa.engine3d.materials {
 	import flash.display.BitmapData;
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
+	import flash.media.Camera;
 
 	import avmplus.getQualifiedClassName;
 
@@ -373,6 +374,77 @@ package alternativa.engine3d.materials {
 			}
 			_normalMapSpace = value;
 		}
+		
+		private static const OBLIQUE_CAM:Camera3D = new Camera3D(1,100);
+		private static const OBLIQUE_MATRIX:Matrix3D = new Matrix3D();
+		private static const EMPTY_RAW_DATA:Vector.<Number>= new Vector.<Number>(16, true);
+		//private static var OBLIQUE_DATA:Vector.<Number>;
+		
+		public static function calculateObliqueProjection(camera:Camera3D):void {
+			var cam:Camera3D = OBLIQUE_CAM;
+			//cam.farClipping = 1;
+			
+			//cam.nearClipping = 5000;  // reverse far/near clip order
+			cam.nearClipping = camera.nearClipping;
+			cam.farClipping  = camera.farClipping;
+			cam.fov = camera.fov;
+			cam.calculateProjection( camera.view.width, camera.view.height);
+		}
+		
+		public static function calculateObliqueCamNearPlane(waterPlane:Vector3D):void {
+			var perspectMatrix:Matrix3D = OBLIQUE_MATRIX;
+			//perspectMatrix.identity();
+			
+			var camera:Camera3D = OBLIQUE_CAM;
+				var raw:Vector.<Number> = EMPTY_RAW_DATA;
+				///*
+				raw[uint(0)] =  camera.m0; 		//camera.nearClipping / xMax;
+				raw[uint(5)] = camera.m5;		 //camera.nearClipping / yMax;
+				raw[uint(10)] = camera.m10;
+				raw[uint(11)] = 1;  		//  * -camera.nearClipping
+				
+				raw[uint(1)] = raw[uint(2)] = raw[uint(3)] = raw[uint(4)] =
+				raw[uint(6)] = raw[uint(7)] = raw[uint(8)] = raw[uint(9)] =
+				raw[uint(12)] = raw[uint(13)] = raw[uint(15)] = 0;
+				
+				raw[uint(14)] = camera.m14;
+			//	*/
+				perspectMatrix.rawData = raw;
+				
+				// Upgrade matrix to oblique clip projection
+				//updateMatrixToOblique(perspectMatrix);
+				
+				
+		
+			var _matrix:Matrix3D = perspectMatrix;
+		
+			_matrix.transpose();
+				
+			//throw new Error(_matrix.rawData + ":::" + firstData);
+			var cx : Number = waterPlane.x;
+			var cy : Number = waterPlane.y;
+			var cz : Number = waterPlane.z;
+			var cw : Number = -waterPlane.w+.05;
+			var signX : Number = cx >= 0 ? 1 : -1;
+			var signY : Number = cy >= 0 ? 1 : -1;
+			var p : Vector3D = new Vector3D(signX, signY, 1, 1);
+			var inverse : Matrix3D = _matrix.clone();
+			inverse.invert();
+			var q : Vector3D = inverse.transformVector(p);
+			
+			_matrix.copyRowTo(3, p); 
+			//_matrix.copyColumnTo(3, p);	
+			
+			var a : Number = (q.x*p.x + q.y*p.y + q.z*p.z + q.w*p.w)/(cx*q.x + cy*q.y+ cz*q.z + cw*q.w);
+			_matrix.copyRowFrom(2, new Vector3D(cx * a, cy * a, cz * a, cw * a));
+			//_matrix.copyColumnFrom(2, new Vector3D(cx * a, cy * a, cz * a, cw * a));
+			
+			_matrix.transpose();
+			
+			//OBLIQUE_DATA = _matrix.rawData;
+			
+		}
+		
 
 		/**
 		 * Specular map.
@@ -821,19 +893,13 @@ package alternativa.engine3d.materials {
 		private function getMatrix(transform:Transform3D):Matrix3D {
 			return  new Matrix3D(Vector.<Number>([transform.a, transform.e, transform.i, 0, transform.b, transform.f, transform.j, 0, transform.c, transform.g, transform.k, 0, transform.d,transform.h, transform.l, 1]));
 		}
-		
+		/*
 		private function updateMatrixToOblique(val:Matrix3D, transform:Transform3D):void {
 																		
 			_matrix.copyFrom(val);
 			
 			var raw:Vector.<Number> = _matrix.rawData;
-			/*
-			raw[12] = transform.i;
-			raw[13] = transform.j;
-			raw[14] = transform.k;
-			raw[15] = transform.l;
-			*/
-			_matrix.rawData = raw;
+	
 		
 			_matrix.transpose();
 				
@@ -860,6 +926,7 @@ package alternativa.engine3d.materials {
 			
 			val.rawData = _matrix.rawData;
 		}
+		*/
 
 		private function addDrawUnits(program:StandardTerrainMaterialProgram, camera:Camera3D, surface:Surface, geometry:Geometry, opacityMap:TextureResource, lights:Vector.<Light3D>, lightsLength:int, isFirstGroup:Boolean, shadowedLight:Light3D, opaqueOption:Boolean, transparentOption:Boolean, objectRenderPriority:int):void {
 			// Buffers
@@ -882,50 +949,27 @@ package alternativa.engine3d.materials {
 
 			// Constants
 			object.setTransformConstants(drawUnit, surface, program.vertexShader, camera);	
-			drawUnit.setProjectionConstants(camera, program.cProjMatrix, object.localToCameraTransform);
 			
-			// -------------  Change drawUnit projection constants on the fly!!
-			var yMax:Number = camera.nearClipping * Math.tan(camera.fov * .5);
-		//	throw new Error(yMax + ", "+camera.view.height*
-			var xMax:Number = yMax * (camera.view.width / camera.view.height);
-			
-			// Is the starting perspective matrix ( before upgrading to oblique) correct?
-			var perspectMatrix:Matrix3D = new Matrix3D();
-				var raw:Vector.<Number> = perspectMatrix.rawData;
-				///*
-				raw[uint(0)] =  camera.m0; 		//camera.nearClipping / xMax;
-				raw[uint(5)] = camera.m5;		 //camera.nearClipping / yMax;
-				raw[uint(10)] = camera.m10;
-				raw[uint(11)] = 1;  		//  * -camera.nearClipping
-				
-				raw[uint(1)] = raw[uint(2)] = raw[uint(3)] = raw[uint(4)] =
-				raw[uint(6)] = raw[uint(7)] = raw[uint(8)] = raw[uint(9)] =
-				raw[uint(12)] = raw[uint(13)] = raw[uint(15)] = 0;
-				
-				raw[uint(14)] = camera.m14;
-			//	*/
-				perspectMatrix.rawData = raw;
-				
+			//object.localToCameraTransform
+			drawUnit.setProjectionConstants(camera, program.cProjMatrix, null);
+
 				// Upgrade matrix to oblique clip projection
-				updateMatrixToOblique(perspectMatrix, object.localToCameraTransform);
+				//updateMatrixToOblique(perspectMatrix, object.localToCameraTransform);
 				
-				
+				var perspectMatrix:Matrix3D = OBLIQUE_MATRIX;
 				var localToCameraSpace:Matrix3D = getMatrix(object.localToCameraTransform);
 				localToCameraSpace.transpose();			    // why need to transpose?
 				localToCameraSpace.prepend(perspectMatrix);  // why need to prepend?
-
-		
-			raw = localToCameraSpace.rawData;
-			///*  last 5 values force fix!
-		//	raw[11] = object.localToCameraTransform.l * camera.m10 +camera.m14;
-			// Technically, only the 3rd row is affected, so restore back intended values for 4th row??
-			raw[12] = object.localToCameraTransform.i;
-			raw[13] = object.localToCameraTransform.j;
-			raw[14] = object.localToCameraTransform.k;
-			raw[15] = object.localToCameraTransform.l;
+				var raw:Vector.<Number> = localToCameraSpace.rawData;
+				///*  last 5 values force fix!
+			//	raw[11] = object.localToCameraTransform.l * camera.m10 +camera.m14;
+				// Technically, only the 3rd row is affected, so restore back intended values for 4th row??
+				raw[12] = object.localToCameraTransform.i;
+				raw[13] = object.localToCameraTransform.j;
+				raw[14] = object.localToCameraTransform.k;
+				raw[15] = object.localToCameraTransform.l;
 			//*/
 			//	throw new Error(raw.join("\n") + "\n:::\n" +drawUnit.vertexConstants.slice( (program.cProjMatrix << 2),  (program.cProjMatrix << 2) + 16).join("\n"));
-			
 			drawUnit.setVertexConstantsFromVector(program.cProjMatrix, raw, 16 >> 2); 
 
 			// -------------------------

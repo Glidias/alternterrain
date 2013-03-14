@@ -278,13 +278,17 @@ waterMat.alphaThreshold = 2;
 			var pointWaterOrigin:Vector3D = camera.globalToLocal(new Vector3D(0, 0, waterLevel));
 			direction = camera.globalToLocal(new Vector3D(0, 0, waterLevel+1)).subtract( pointWaterOrigin );
 			direction.normalize();
-			direction.negate();
+			//direction.negate();
 			direction.w = direction.dotProduct(pointWaterOrigin);
 		
 			//*/
+		//	if (direction.w >= 0) throw new Error("A");
 
 			_debugField.text = String(direction + ", " + direction.w);
-			_terrainMat.waterPlane = direction;
+			
+			StandardTerrainMaterial2Test.calculateObliqueProjection(camera);
+			StandardTerrainMaterial2Test.calculateObliqueCamNearPlane(direction);
+			//_terrainMat.waterPlane = direction;
 
 			renderId++;
 			if (omniLight) {
