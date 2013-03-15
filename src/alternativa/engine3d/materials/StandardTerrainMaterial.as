@@ -41,7 +41,7 @@ package alternativa.engine3d.materials {
 	use namespace alternativa3d;
 
 	/**
-	 * Same as StandardMaterial but supports fog and mist!
+	 * Same as StandardMaterial but supports fog and mist and forceRenderPriority!
 	 * 
 	 * Material with diffuse, normal, opacity, specular maps and glossiness value. The material is able to draw skin
 	 * with the number of bones in surface no more than 41. To reduce the number of bones in surface can break
@@ -121,7 +121,12 @@ package alternativa.engine3d.materials {
 			fogColorG = ((val & 0xFF00) >> 8) / 255;
 			fogColorB = ((val & 0xFF)) / 255;
 		}
+		
+		public var waterMode:int = 0;
+		public var waterLevel:Number = 0;
+		
 
+		
 		/**
 		 * @private
 		 */
@@ -244,6 +249,20 @@ package alternativa.engine3d.materials {
 			"add i0.xyz, i0.xyz, t1.xyz",
 			"mov o0, i0"
 		], "mulLightingProcedure");
+		
+		
+		// KIL water level fragment shader - waterMode = 1
+		private static const kilWaterLevel:Procedure = new Procedure([
+			"#c0=cWater",
+			"#v0=vPosition",
+			"sub t0.z, v0.z, c0.z",
+			"kil t0.z"
+		], "kilWaterLevel");
+		
+		
+		
+		// MIST alpha blend area near water level  (useful for gradient mist effect of terrain near water)
+		
 
 		// inputs : position
 		private static const passSimpleFogConstProcedure:Procedure = new Procedure([
@@ -400,6 +419,8 @@ package alternativa.engine3d.materials {
 		
 		
 		public var mistMap:TextureResource; // a fog of war texture
+		
+		public var forceRenderPriority:int = -1;
 
 		/**
 		 * Creates a new StandardTerrainMaterial instance.
@@ -590,6 +611,9 @@ package alternativa.engine3d.materials {
 				var vertexLinker:Linker = new Linker(Context3DProgramType.VERTEX);
 				var fragmentLinker:Linker = new Linker(Context3DProgramType.FRAGMENT);
 				var i:int;
+				
+				
+				if (waterMode > 0) fragmentLinker.addProcedure(kilWaterLevel);
 
 				// Merge program using lightsGroup
 				// add property useShadow
@@ -625,6 +649,9 @@ package alternativa.engine3d.materials {
 				vertexLinker.declareVariable(positionVar, VariableType.ATTRIBUTE);
 				vertexLinker.declareVariable(tangentVar, VariableType.ATTRIBUTE);
 				vertexLinker.declareVariable(normalVar, VariableType.ATTRIBUTE);
+				
+				
+				
 				if (object.transformProcedure != null) {
 					positionVar = appendPositionTransformProcedure(object.transformProcedure, vertexLinker);
 				}
@@ -811,6 +838,7 @@ package alternativa.engine3d.materials {
 		}
 
 		private function addDrawUnits(program:StandardTerrainMaterialProgram, camera:Camera3D, surface:Surface, geometry:Geometry, opacityMap:TextureResource, lights:Vector.<Light3D>, lightsLength:int, isFirstGroup:Boolean, shadowedLight:Light3D, opaqueOption:Boolean, transparentOption:Boolean, objectRenderPriority:int):void {
+			
 			// Buffers
 			var positionBuffer:VertexBuffer3D = geometry.getVertexBuffer(VertexAttributes.POSITION);
 			var uvBuffer:VertexBuffer3D = geometry.getVertexBuffer(VertexAttributes.TEXCOORDS[0]);
@@ -835,6 +863,7 @@ package alternativa.engine3d.materials {
 			 // Set options for a surface. X should be 0.
 			drawUnit.setFragmentConstantsFromNumbers(program.cSurface, 0, glossiness, specularPower, 1);
 			drawUnit.setFragmentConstantsFromNumbers(program.cThresholdAlpha, alphaThreshold, 0, 0, alpha);
+			if (waterMode > 0) drawUnit.setFragmentConstantsFromNumbers(program.cWater, 0, 0, waterLevel, 1);
 
 			var light:Light3D;
 			var len:Number;
@@ -1043,6 +1072,8 @@ package alternativa.engine3d.materials {
 			if (diffuseMap == null || normalMap == null || diffuseMap._texture == null || normalMap._texture == null) return;
 			// Check if textures uploaded in to the context.
 			if (opacityMap != null && opacityMap._texture == null || glossinessMap != null && glossinessMap._texture == null || specularMap != null && specularMap._texture == null || lightMap != null && lightMap._texture == null) return;
+			
+			objectRenderPriority = forceRenderPriority < 0 ? objectRenderPriority : forceRenderPriority;
 
 			if (camera.context3DProperties.isConstrained) {
 				// fallback to simpler material
@@ -1308,6 +1339,7 @@ class StandardTerrainMaterialProgram extends ShaderProgram {
 	public var sGlossiness:int = -1;
 	public var sSpecular:int = -1;
 	public var sLightMap:int = -1;
+	public var cWater:int = -1;
 
 	public var cPosition:Vector.<int>;
 	public var cRadius:Vector.<int>;
@@ -1337,6 +1369,7 @@ class StandardTerrainMaterialProgram extends ShaderProgram {
 		cAmbientColor = fragmentShader.findVariable("cAmbientColor");
 		cSurface = fragmentShader.findVariable("cSurface");
 		cThresholdAlpha = fragmentShader.findVariable("cThresholdAlpha");
+		cWater = fragmentShader.findVariable("cWater");
 		sDiffuse = fragmentShader.findVariable("sDiffuse");
 		sOpacity = fragmentShader.findVariable("sOpacity");
 		sBump = fragmentShader.findVariable("sBump");

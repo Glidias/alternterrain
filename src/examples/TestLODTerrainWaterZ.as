@@ -2,17 +2,19 @@ package examples
 {
 	import flash.display.Sprite;
 	/**
-	 * Simple single-page (non-textured) LOD (1024x1024 tiles) terrain with normal map texture 
+	 * Simple single-page (non-textured) LOD (1024x1024 tiles) terrain with normal map texture, 
 	 * 
-	 *  -with-
+	 * -with-
 	 * 
-	 * and water level testing with OBLIQUE VIEW FRUSTUM CLIPPING. (Got z-buffer artifacts, not practical for real scenes)
+	 * Water-level fragment shader clipping and forced render priorities with Skybox/water textures. 
+	 * This is allows one to keep the current z-buffer.
+	 * 
 	 * @author Glenn Ko
 	 */
-	public class TestLODTerrainWater extends Sprite
+	public class TestLODTerrainWaterZ extends Sprite
 	{
 		
-		public function TestLODTerrainWater() 
+		public function TestLODTerrainWaterZ() 
 		{
 			addChild( new MyTemplate( root.loaderInfo.url.slice(0, ("http://").length) === "http://" ) );
 		}
@@ -24,6 +26,7 @@ package examples
 
 
 import alternativa.engine3d.core.Debug;
+import alternativa.engine3d.core.Renderer;
 import alternativa.engine3d.core.VertexAttributes;
 import alternativa.engine3d.lights.OmniLight;
 import alternativa.engine3d.lights.SpotLight;
@@ -31,11 +34,10 @@ import alternativa.engine3d.materials.FillMaterial;
 import alternativa.engine3d.materials.NormalMapSpace;
 import alternativa.engine3d.materials.StandardMaterial;
 import alternativa.engine3d.materials.StandardTerrainMaterial;
-import alternativa.engine3d.materials.StandardTerrainMaterial2Test;
-import alternativa.engine3d.materials.StandardTerrainMaterial2Test;
 import alternativa.engine3d.materials.TextureMaterial;
 import alternativa.engine3d.materials.VertexLightTextureMaterial;
 import alternativa.engine3d.objects.Mesh;
+import alternativa.engine3d.objects.SkyBox;
 import alternativa.engine3d.objects.WireFrame;
 import alternativa.engine3d.primitives.Box;
 import alternativa.engine3d.primitives.Plane;
@@ -47,7 +49,6 @@ import alternterrain.resources.InstalledQuadTreePages;
 import alternterrain.resources.LoadAliases;
 import com.nodename.Delaunay.Edge;
 import flash.events.IEventDispatcher;
-import flash.geom.Vector3D;
 
 import alternterrain.util.*;
 import com.tartiflop.PlanarDispToNormConverter;
@@ -89,9 +90,7 @@ class MyTemplate extends Template {
 	private var EDGE:Class;
 	
 	private var _normalMapData:BitmapData;
-	private var _terrainMat:StandardTerrainMaterial2Test;
 	private var waterLevel:Number;
-	private var _debugField:TextField = new TextField();
 
 	
 	public function MyTemplate(IS_ONLINE:Boolean=false) {
@@ -105,11 +104,6 @@ class MyTemplate extends Template {
 		
 		_normalMapData = new NORMAL_MAP().bitmapData;
 		addEventListener(Event.ADDED_TO_STAGE, addedToStage);
-		
-		_debugField.autoSize = "left";
-		_debugField.background = true;
-		_debugField.backgroundColor = 0xFFFFFF;
-		
 	}
 	
 
@@ -139,7 +133,7 @@ class MyTemplate extends Template {
 		stage.addEventListener(KeyboardEvent.KEY_DOWN, onkeyDowN)
 		init();
 		
-		addChild(_debugField);
+		
 	}
 	
 	
@@ -197,9 +191,8 @@ class MyTemplate extends Template {
 
 		
 		//new BitmapTextureResource(new EDGE().bitmapData)
-		var standardMaterial:StandardTerrainMaterial2Test = new StandardTerrainMaterial2Test( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData), null, null  );
+		var standardMaterial:StandardTerrainMaterial = new StandardTerrainMaterial( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData), null, null  );
 		standardMaterial.transparentPass = true;
-		_terrainMat = standardMaterial;
 		//standardMaterial.opaquePass = false;
 		standardMaterial.alphaThreshold = 1;
 		
@@ -209,20 +202,14 @@ class MyTemplate extends Template {
 		standardMaterial.specularPower = 0;
 		standardMaterial.glossiness = 0;
 		standardMaterial.mistMap = new BitmapTextureResource(new EDGE().bitmapData);
-		
+
 		StandardTerrainMaterial.fogMode = 1;
-		StandardTerrainMaterial.fogFar = camera.farClipping = 256 * 600;
+		StandardTerrainMaterial.fogFar = camera.farClipping = 256 * 800;
 		StandardTerrainMaterial.fogNear = 256 * 32;
 		StandardTerrainMaterial.fogColor = settings.viewBackgroundColor;
 		
-		waterLevel = -20000;
-		//standardMaterial.waterMode = 1;
-		//standardMaterial.waterLevel = -20000;
-		
-	
 
-		terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial, 256 * 1024 );  //new FillMaterial(0xFF0000, 1)
-			
+		terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial, 256*1024 );  //new FillMaterial(0xFF0000, 1)
 		// )
 		//terrainLOD.useLighting = false;
 
@@ -252,49 +239,48 @@ class MyTemplate extends Template {
 		omniLight.distance = 1000;
 		scene.addChild(omniLight);
 		
-		camera.nearClipping = 40;
-		//camera.farClipping = 900000;
+		camera.nearClipping = 16;
+	//	camera.farClipping = 900000;
 		//camera.debug = true;
 		camera.addToDebug(Debug.BOUNDS, terrainLOD);
 		camera.addToDebug(Debug.CONTENT, spotlight);
 
 	
 		
-		var waterMat:StandardMaterial = new StandardMaterial( new BitmapTextureResource(new BitmapData(4, 4, false, 0x0000FF)), new BitmapTextureResource(new BitmapData(4, 4, false, 0x0000FF)) );
-waterMat.opacityMap = new BitmapTextureResource(new BitmapData(16, 16, true, 0xFFFFFFFF));
-waterMat.alphaThreshold = 2;
+			waterLevel = -20000;
+			standardMaterial.waterLevel = waterLevel;
+				
+			standardMaterial.waterMode = 1;
+						
+			var waterMat:StandardTerrainMaterial = new StandardTerrainMaterial( new BitmapTextureResource(new BitmapData(4, 4, false, 0x0000FF)), new BitmapTextureResource(new BitmapData(4, 4, false, 0x0000FF)) );
+			waterMat.mistMap = standardMaterial.mistMap;
+		
+			waterMat.forceRenderPriority = Renderer.SKY + 1;
+			/*
+				waterMat.opaquePass = false;
+			waterMat.transparentPass = true;
+			waterMat.alphaThreshold = 2;
+			waterMat.alpha = 1;
+			*/
 
 			var waterPlane:Plane = new Plane(terrainLOD.boundBox.maxX, terrainLOD.boundBox.maxX, 1, 1, false, false, null,waterMat );
 			waterPlane.x = terrainLOD.boundBox.maxX * .5;
 			waterPlane.y = -terrainLOD.boundBox.maxX * .5;
 			waterPlane.z = waterLevel;
-	//		scene.addChild(waterPlane);
-	scene.addChild(terrainLOD);
+			
+			/*
+				var skyMat:FillMaterial = new FillMaterial(settings.viewBackgroundColor, 1);
+				var skybox:SkyBox = new SkyBox(camera.farClipping,skyMat,skyMat,skyMat,skyMat,skyMat,skyMat);
+				scene.addChild(skybox);
+			*/
+				
+			scene.addChild(waterPlane);
+			scene.addChild(terrainLOD);
 	}
 	
 	override public function onRenderTick(e:Event):void {
 	//	super.onRenderTick(e);
-			
 			cameraController.update();
-
-			var direction:Vector3D;
-			///*
-			// Create some dummy points in global space to convert to local coordinate space of camera, to find direction vector
-			var pointWaterOrigin:Vector3D = camera.globalToLocal(new Vector3D(0, 0, waterLevel));
-			direction = camera.globalToLocal(new Vector3D(0, 0, waterLevel+1)).subtract( pointWaterOrigin );
-			direction.normalize();
-			//direction.negate();
-			direction.w = direction.dotProduct(pointWaterOrigin);
-		
-			//*/
-		//	if (direction.w >= 0) throw new Error("A");
-
-			_debugField.text = String(direction + ", " + direction.w);
-			
-			StandardTerrainMaterial2Test.calculateObliqueProjection(camera);
-			StandardTerrainMaterial2Test.calculateObliqueCamNearPlane(direction);
-			//_terrainMat.waterPlane = direction;
-
 			renderId++;
 			if (omniLight) {
 				omniLight.x = camera.x;

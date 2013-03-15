@@ -39,6 +39,8 @@ package alternativa.engine3d.materials {
 	use namespace alternativa3d;
 
 	/**
+	 * Supports forceRenderPriority and some basic fixes to allow rendering without vertex normals.
+	 * 
 	 * Material with diffuse, normal, opacity, specular maps and glossiness value. The material is able to draw skin
 	 * with the number of bones in surface no more than 41. To reduce the number of bones in surface can break
 	 * the skin for more surface with fewer bones. Use the method Skin.divide (). To be drawn with this material,
@@ -370,6 +372,9 @@ package alternativa.engine3d.materials {
 		 * Brightness of a flare. Multiplies with  <code>specularMap</code> value.
 		 */
 		public var specularPower:Number = 1;
+		
+		
+		public var forceRenderPriority:int = -1;
 
 		/**
 		 * Creates a new StandardMaterial instance.
@@ -994,6 +999,8 @@ package alternativa.engine3d.materials {
 			if (diffuseMap == null || normalMap == null || diffuseMap._texture == null || normalMap._texture == null) return;
 			// Check if textures uploaded in to the context.
 			if (opacityMap != null && opacityMap._texture == null || glossinessMap != null && glossinessMap._texture == null || specularMap != null && specularMap._texture == null || lightMap != null && lightMap._texture == null) return;
+			
+			objectRenderPriority = forceRenderPriority < 0 ? objectRenderPriority : forceRenderPriority;
 
 			if (camera.context3DProperties.isConstrained) {
 				// fallback to simpler material
@@ -1104,6 +1111,7 @@ package alternativa.engine3d.materials {
 					} else {
 						// There is no Alpha threshold or check z-buffer by previous pass
 						program = getProgram(object, optionsPrograms, camera, materialKey, opacityMap, 0, null, 0, true, null);
+						
 						addDrawUnits(program, camera, surface, geometry, opacityMap, null, 0, true, null, false, true, objectRenderPriority);
 					}
 				}
