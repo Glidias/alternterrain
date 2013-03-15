@@ -52,14 +52,14 @@
   <libraryPaths>
     <element path="lib\ds_release_alchemy.swc" />
     <element path="lib\MinimalComps_0_9_10.swc" />
-    <element path="lib\FCSS-v1.1.0.swc" />
     <element path="lib\framework.swc" />
     <element path="lib\Progression4.swc" />
-    <element path="lib\MinimalComps_0_9_6.swc" />
     <element path="lib\v8\Alternativa3D.swc" />
     <element path="lib\Stats.swc" />
     <element path="lib\Alternativa3D.swc" />
     <element path="lib\greensock.swc" />
+    <element path="lib\MinimalComps_0_9_6.swc" />
+    <element path="lib\FCSS-v1.1.0.swc" />
   </libraryPaths>
   <!-- External Libraries -->
   <externalLibraryPaths>
@@ -79,7 +79,7 @@
   </library>
   <!-- Class files to compile (other referenced classes will automatically be included) -->
   <compileTargets>
-    <compile path="src\examples\TestLODTerrainWaterZ.as" />
+    <compile path="src\examples\WaterShaderExampleNeko.as" />
   </compileTargets>
   <!-- Paths to exclude from the Project Explorer tree -->
   <hiddenPaths>

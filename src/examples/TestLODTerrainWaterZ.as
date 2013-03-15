@@ -192,7 +192,7 @@ class MyTemplate extends Template {
 		
 		//new BitmapTextureResource(new EDGE().bitmapData)
 		var standardMaterial:StandardTerrainMaterial = new StandardTerrainMaterial( new BitmapTextureResource(_normalMapData), new BitmapTextureResource( _normalMapData), null, null  );
-		standardMaterial.transparentPass = true;
+		
 		//standardMaterial.opaquePass = false;
 		standardMaterial.alphaThreshold = 1;
 		

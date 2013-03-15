@@ -1332,7 +1332,7 @@ package alternterrainxtras.materials {
                 // Constants
                 object.setTransformConstants(drawUnit, surface, program.vertexShader, camera);
                 drawUnit.setProjectionConstants(camera, program.cProjMatrix, object.localToCameraTransform);
-				drawUnit.setVertexConstantsFromNumbers(program.cUVProperties, uvOffsetX, uvOffsetY,  1 / tileIndexMaps[lookupIndex].data.width, uvMultiplier);
+				drawUnit.setVertexConstantsFromNumbers(program.cUVProperties, uvOffsetX, uvOffsetY, 1 / tileIndexMaps[lookupIndex].data.width, uvMultiplier);
                  // Set options for a surface. X should be 0.
                  drawUnit.setFragmentConstantsFromNumbers(program.cSurface, 0, glossiness, specularPower, 1);
                 drawUnit.setFragmentConstantsFromNumbers(program.cThresholdAlpha, alphaThreshold, 0, 0, alpha);

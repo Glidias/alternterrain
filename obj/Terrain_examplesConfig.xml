@@ -30,10 +30,12 @@
       <path-element>D:\Git\alternterrain\lib\Stats.swc</path-element>
       <path-element>D:\Git\alternterrain\lib\Alternativa3D.swc</path-element>
       <path-element>D:\Git\alternterrain\lib\greensock.swc</path-element>
+      <path-element>D:\Git\alternterrain\lib\MinimalComps_0_9_6.swc</path-element>
+      <path-element>D:\Git\alternterrain\lib\FCSS-v1.1.0.swc</path-element>
     </library-path>
   </compiler>
   <file-specs>
-    <path-element>D:\Git\alternterrain\src\examples\TestLODTerrainWaterZ.as</path-element>
+    <path-element>D:\Git\alternterrain\src\examples\WaterShaderExampleNeko.as</path-element>
   </file-specs>
   <default-background-color>#FFFFFF</default-background-color>
   <default-frame-rate>60</default-frame-rate>

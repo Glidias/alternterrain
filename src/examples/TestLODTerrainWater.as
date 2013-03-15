@@ -92,6 +92,8 @@ class MyTemplate extends Template {
 	private var _terrainMat:StandardTerrainMaterial2Test;
 	private var waterLevel:Number;
 	private var _debugField:TextField = new TextField();
+	
+	public var settings:TemplateSettings = new TemplateSettings();
 
 	
 	public function MyTemplate(IS_ONLINE:Boolean=false) {
