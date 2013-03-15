@@ -7,6 +7,7 @@
  * */
 
 package alternativa.engine3d.materials {
+	import alternterrain.core.QuadTreePage;
 
 	import alternativa.engine3d.alternativa3d;
 	import alternativa.engine3d.core.Camera3D;
@@ -26,6 +27,8 @@ package alternativa.engine3d.materials {
 	import alternativa.engine3d.resources.BitmapTextureResource;
 	import alternativa.engine3d.resources.Geometry;
 	import alternativa.engine3d.resources.TextureResource;
+	import alternterrain.core.QuadChunkCornerData;
+	import alternterrain.materials.ILODTerrainMaterial;
 	import flash.display.BitmapData;
 
 	import avmplus.getQualifiedClassName;
@@ -53,7 +56,7 @@ package alternativa.engine3d.materials {
 	 * @see alternativa.engine3d.core.VertexAttributes#TANGENT4
 	 * @see alternativa.engine3d.objects.Skin#divide()
 	 */
-	public class StandardTerrainMaterial extends TextureMaterial {
+	public class StandardTerrainMaterial extends TextureMaterial implements ILODTerrainMaterial {
 
 		private static const LIGHT_MAP_BIT:int = 1;
 		private static const GLOSSINESS_MAP_BIT:int = 2;
@@ -122,10 +125,10 @@ package alternativa.engine3d.materials {
 			fogColorB = ((val & 0xFF)) / 255;
 		}
 		
-		public var waterMode:int = 0;
+		private var _waterMode:int = 0;
+		private var _useWaterMode:int = 0;
 		public var waterLevel:Number = 0;
 		
-
 		
 		/**
 		 * @private
@@ -388,6 +391,17 @@ package alternativa.engine3d.materials {
 			}
 			_normalMapSpace = value;
 		}
+		
+		public function get waterMode():int 
+		{
+			return _waterMode;
+		}
+		
+		public function set waterMode(value:int):void 
+		{
+			_waterMode = value;
+			_useWaterMode = value;
+		}
 
 		/**
 		 * Specular map.
@@ -613,7 +627,7 @@ package alternativa.engine3d.materials {
 				var i:int;
 				
 				
-				if (waterMode > 0) fragmentLinker.addProcedure(kilWaterLevel);
+				if (_useWaterMode > 0) fragmentLinker.addProcedure(kilWaterLevel);
 
 				// Merge program using lightsGroup
 				// add property useShadow
@@ -863,7 +877,7 @@ package alternativa.engine3d.materials {
 			 // Set options for a surface. X should be 0.
 			drawUnit.setFragmentConstantsFromNumbers(program.cSurface, 0, glossiness, specularPower, 1);
 			drawUnit.setFragmentConstantsFromNumbers(program.cThresholdAlpha, alphaThreshold, 0, 0, alpha);
-			if (waterMode > 0) drawUnit.setFragmentConstantsFromNumbers(program.cWater, 0, 0, waterLevel, 1);
+			if (_useWaterMode > 0) drawUnit.setFragmentConstantsFromNumbers(program.cWater, 0, 0, waterLevel, 1);
 
 			var light:Light3D;
 			var len:Number;
@@ -1064,6 +1078,7 @@ package alternativa.engine3d.materials {
 
 		private static var lightGroup:Vector.<Light3D> = new Vector.<Light3D>();
 		private static var shadowGroup:Vector.<Light3D> = new Vector.<Light3D>();
+
 
 		/**
 		 * @private
@@ -1298,6 +1313,13 @@ package alternativa.engine3d.materials {
 			var res:StandardTerrainMaterial = new StandardTerrainMaterial(diffuseMap, normalMap, specularMap, glossinessMap, opacityMap);
 			res.clonePropertiesFrom(this);
 			return res;
+		}
+		
+		/* INTERFACE alternterrain.materials.ILODTerrainMaterial */
+		
+		public function visit(cd:QuadChunkCornerData, root:QuadTreePage, patchShift:int, lookupIndex:int):void 
+		{
+			_useWaterMode = _waterMode > 0 ? cd.Square.MinY < waterLevel ? _waterMode : 0 : 0;
 		}
 
 		/**
