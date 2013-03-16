@@ -40,6 +40,14 @@ package examples
 	import flash.events.Event;
 	import flash.events.MouseEvent;
 	
+	/**
+	 * Integrating LOD terrain with water.
+	 * 
+	 * http://nekobit.puslapiai.lt/water-material-for-alternativa3d/
+	 *
+	 * @author Nekobit
+	 * @author Glidias
+	 */
 	[SWF(width="1100", height="600", frameRate="60")]
 	public class WaterShaderExampleNeko extends Sprite
 	{
