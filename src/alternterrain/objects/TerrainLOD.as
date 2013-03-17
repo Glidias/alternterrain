@@ -693,6 +693,7 @@ package alternterrain.objects
 		
 		public function cullingInFrustum(culling:int, minX:Number, minY:Number, minZ:Number, maxX:Number, maxY:Number, maxZ:Number):int 
 		{
+			
 				if (maxZ < waterLevel) {
 					
 					return -1;
@@ -766,7 +767,9 @@ package alternterrain.objects
 				_cameraPos.x = cameraToLocalTransform.d;
 				_cameraPos.y = -cameraToLocalTransform.h;
 				_cameraPos.z = cameraToLocalTransform.l;
+				camera.calculateFrustum(cameraToLocalTransform);
 				_frustum = camera.frustum;
+				
 				
 				if (debug) {
 					if (!_lastDebugRun) runDebugBuffer(camera.context3D);
