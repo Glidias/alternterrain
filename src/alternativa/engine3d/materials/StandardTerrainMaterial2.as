@@ -62,6 +62,8 @@ package alternativa.engine3d.materials {
 		private static const GLOSSINESS_MAP_BIT:int = 2;
 		private static const SPECULAR_MAP_BIT:int = 4;
 		private static const OPACITY_MAP_BIT:int = 8;
+		private static const WATER_BIT:int = 16;
+		
 		private static const NORMAL_MAP_SPACE_OFFSET:int = 4;	// shift value
 		private static const ALPHA_TEST_OFFSET:int = 6;
 		private static const OMNI_LIGHT_OFFSET:int = 8;
@@ -639,17 +641,19 @@ package alternativa.engine3d.materials {
 			// 11-13 bits - DirectionalLight count
 			// 14-16 bits - SpotLight count
 			// 17-18 bit - Shadow Type (PCF, SIMPLE, NONE)
+			// 19 but - Use water mode
 
-			var key:int = materialKey | (opacityMap != null ? OPACITY_MAP_BIT : 0) | (alphaTest << ALPHA_TEST_OFFSET);
+			var key:uint = materialKey | (opacityMap != null ? OPACITY_MAP_BIT : 0) | (alphaTest << ALPHA_TEST_OFFSET);
+			key |= _useWaterMode > 0 ? WATER_BIT : 0;
+			
 			var program:StandardTerrainMaterialProgram = programs[key];
 
 			if (program == null) {
 				var vertexLinker:Linker = new Linker(Context3DProgramType.VERTEX);
 				var fragmentLinker:Linker = new Linker(Context3DProgramType.FRAGMENT);
 				var i:int;
-				
-				
-				if (_useWaterMode > 0) fragmentLinker.addProcedure(kilWaterLevel);
+			
+				if (key & WATER_BIT) fragmentLinker.addProcedure(kilWaterLevel);
 
 				// Merge program using lightsGroup
 				// add property useShadow
@@ -1202,7 +1206,7 @@ package alternativa.engine3d.materials {
 				// There is only Ambient light on the scene
 				// Form key
 				materialKey = ((lightMap != null) ? LIGHT_MAP_BIT : 0) | ((glossinessMap != null) ? GLOSSINESS_MAP_BIT : 0) | ((specularMap != null) ? SPECULAR_MAP_BIT : 0);
-
+				
 				if (opaquePass && alphaThreshold <= alpha) {
 					if (alphaThreshold > 0) {
 						// Alpha test

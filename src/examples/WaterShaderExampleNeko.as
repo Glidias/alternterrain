@@ -24,6 +24,7 @@ package examples
 	import eu.nekobit.alternativa3d.materials.WaterMaterial;
 	import flash.display.BitmapData;
 	import flash.utils.ByteArray;
+	import flash.utils.getTimer;
 	
 	import com.bit101.components.HSlider;
 	import com.bit101.components.InputText;
@@ -43,10 +44,8 @@ package examples
 	/**
 	 * Integrating LOD terrain with water.
 	 * 
-	 * http://nekobit.puslapiai.lt/water-material-for-alternativa3d/
-	 *
-	 * @author Nekobit
-	 * @author Glidias
+	 * @author Varnius  http://nekobit.puslapiai.lt/water-material-for-alternativa3d/
+	 * @author Glidias	LOD terrain on water
 	 */
 	[SWF(width="1100", height="600", frameRate="60")]
 	public class WaterShaderExampleNeko extends Sprite
@@ -86,6 +85,8 @@ package examples
 		[Embed(source="assets/water/skybox/right.png")]
 		static private const SBRight:Class;
 		
+		static public const START_LOD:Number = 1;
+		
 		private var _normalMapData:BitmapData;
 		private var settings:TemplateSettings = new TemplateSettings();
 		
@@ -105,8 +106,8 @@ package examples
 			stage.align = StageAlign.TOP_LEFT;
 			
 			var loadAliases:LoadAliases = new LoadAliases();
-			settings.cameraSpeed = 600;
-			settings.cameraSpeedMultiplier = 16;
+			settings.cameraSpeed = 2100;
+			settings.cameraSpeedMultiplier = 14;
 			settings.viewBackgroundColor = 0x86a1b8;
 
 			
@@ -154,7 +155,7 @@ package examples
 			
 			// Controller
 			controller = new SimpleObjectController(stage, camera, settings.cameraSpeed, settings.cameraSpeedMultiplier);
-			controller.enable();
+
 			
 			// Skybox
 			// create skybox textures
@@ -208,22 +209,24 @@ package examples
 			
 			  //Lightを追加
            var  ambientLight:AmbientLight = new AmbientLight(0xFFFFFF);
-            ambientLight.intensity = 0.5;
+            ambientLight.intensity = 0.4;
             scene.addChild(ambientLight);
             
             //Lightを追加
            var  directionalLight:DirectionalLight = new DirectionalLight(0xFFFFFF);
             //手前右上から中央へ向けた指向性light
-            directionalLight.x = 0;
+            directionalLight.x = 100;
             directionalLight.y = -100;
             directionalLight.z = 100;
             directionalLight.lookAt(0, 0, 0);
+			directionalLight.intensity = .5;
             scene.addChild(directionalLight);
 			
 			
 			// TerrainLOD
-			var terrainLOD:TerrainLOD = new TerrainLOD();
-			terrainLOD.detail = 1;
+			terrainLOD = new TerrainLOD();
+			terrainLOD.detail = START_LOD;
+			terrainLOD.waterLevel = waterLevel;
 			
 			standardMaterial = new StandardTerrainMaterial2(groundTextureResource , new BitmapTextureResource( _normalMapData), null, null  );
 			
@@ -250,12 +253,19 @@ package examples
 		
 		uploadResources(terrainLOD.getResources());
 			scene.addChild(terrainLOD);
+			//	hideFromReflection.push(terrainLOD);
+			
+
+		// Move camera to a position on terrain
+		camera.z = _loadedPage.heightMap.Sample(camera.x - terrainLOD.x, -(camera.y - terrainLOD.y)) ;
+		if (camera.z < waterLevel) camera.z = waterLevel;
+		camera.z += 100;	
+		controller.updateObjectTransform();
+		
+		
 			
 			
-			controller.setObjectPosXYZ(camera.x, camera.y, _loadedPage.heightMap.Sample(camera.x-terrainLOD.x, -(camera.y-terrainLOD.y)) + 122 );
-		//	hideFromReflection.push(terrainLOD);
-			
-			// Teapot	
+			// Teapot	 (there's a problem with including teapot in the scene). DOesn't work with other objects!
 			/*
 			scene.addChild(teapotContainer);
 			var parser:ParserCollada = new ParserCollada();
@@ -285,7 +295,8 @@ package examples
 			// Render loop
 			stage.addEventListener(Event.ENTER_FRAME, think);
 			stage.addEventListener(Event.RESIZE, onResize);
-		//	stage.addEventListener(MouseEvent.RIGHT_CLICK, function(e:Event):void {});
+
+			
 		}
 		
 		private function onResize(e:Event):void
@@ -307,11 +318,21 @@ package examples
 		// todo: some custom culling method to make up for absence of clipping planes?
 		private var hideFromReflection:Vector.<Object3D> = new Vector.<Object3D>();
 		
+		public var _baseWaterLevelOscillate:Number = 0;// 80;
+		public var _baseWaterLevel:Number = waterLevel;// -20000 + _baseWaterLevelOscillate;
+		public var _waterSpeed:Number = 0;// 2.0 * .001;
+		public var clipReflection:Boolean = true;
+		private var _lastTime:int = -1;
+		private var _waterOscValue:Number = 0;
+	
 		private function think(e:Event):void
 		{
+			var curTime:int = getTimer();
+			
 			camera.startTimer();		
 			controller.update();
 		
+			standardMaterial.waterMode  = clipReflection ? 1 : 0;  // Clip reflection toggler - actually rendering reflection without clipping may be better
 			waterMaterial.update(stage3D, camera, plane, hideFromReflection);
 			camera.stopTimer();
 			
@@ -319,9 +340,37 @@ package examples
 		//	teapotContainer.rotationZ += 0.012;
 		//	teapot.rotationZ -= 0.02;
 	
+			standardMaterial.waterMode  = 1; // Clip reflection toggler
 			camera.render(stage3D);
+			
+			if (_lastTime < 0) _lastTime = curTime;
+			var timeElapsed:int = curTime - _lastTime;
+			_lastTime = curTime;
+			
+			_waterOscValue += timeElapsed * _waterSpeed;
+			plane.z = standardMaterial.waterLevel = terrainLOD.waterLevel = waterLevel = _baseWaterLevel + Math.sin(_waterOscValue) * _baseWaterLevelOscillate;
 		}
 		
+		public function onClipReflectionChange(e:Event):void {
+			clipReflection = (e.currentTarget).selected;
+		}
+		
+		public function onTerrainLODChange(e:Event):void {
+			terrainLOD.detail = (e.currentTarget).value;
+		}
+		
+		public function onWaterLevelChange(e:Event):void {
+			_baseWaterLevel = (e.currentTarget).value;
+			
+		}
+		public function onWaterSpeedChange(e:Event):void {
+			_waterSpeed = (e.currentTarget).value / 1000;
+			
+		}
+		public function onWaterAmpChange(e:Event):void {
+			_baseWaterLevelOscillate = (e.currentTarget).value;
+			
+		}
 		private function uploadResources(resources:Vector.<Resource>):void
 		{
 			for each(var res:Resource in resources)
@@ -338,10 +387,10 @@ package examples
 		---------------------*/
 		
 		private var guiContainer:Sprite = new Sprite();
-		private static const view:XML =
+		private var  view:XML =
 			<comps>			
 				<!-- Console -->
-				<Window id="options" title="Water options" x="695" y="5" width="400" height="240" draggable="true" hasMinimizeButton="true">
+				<Window id="options" title="Options" x="695" y="5" width="400" height="320" draggable="true" hasMinimizeButton="true">
 					<VBox left="15" right="15" top="50" bottom="15" spacing="15">
 						<HBox bottom="5" left="5" right="5">
 							<Label text="Water tint color RGB:" />
@@ -354,21 +403,34 @@ package examples
 							<HSlider id="tintSlider" minimum="0.0" maximum="1.0" event="change:onTintChange"/>
 						</HBox>
 						<HBox bottom="5" left="5" right="5" alignment="middle">
-							<Label text="Fresnel multiplier:" />
+							<Label text="Water Fresnel multiplier:" />
 							<HSlider id="fresnelSlider" minimum="0.0" maximum="1.0" event="change:onFresnelCoefChange"/>
 						</HBox>
 						<HBox bottom="5" left="5" right="5" alignment="middle">
-							<Label text="Reflection (fresnel -1) multiplier:" />
+							<Label text="Water Reflection (fresnel -1) multiplier:" />
 							<HSlider id="reflectionMultiplierSlider" minimum="0.0" maximum="1.0" event="change:onFresnelCoefChange"/>
 						</HBox>
 						<HBox bottom="5" left="5" right="5" alignment="middle">
-							<Label text="Perturb reflection by:" />
+							<Label text="Water Perturb reflection by:" />
 							<HSlider id="perturbReflectiveSlider" minimum="0.0" maximum="0.5" event="change:onPerturbChange"/>
+							<Label text="Clip reflection:" />
+							<CheckBox id="clipReflection" selected={clipReflection} event="change:onClipReflectionChange"/>
 						</HBox>
 						<HBox bottom="5" left="5" right="5" alignment="middle">
-							<Label text="Perturb refraction by:" />
+							<Label text="Water Perturb refraction by:" />
 							<HSlider id="perturbRefractiveSlider" minimum="0.0" maximum="0.5" event="change:onPerturbChange"/>
 						</HBox>
+						<HBox bottom="0" left="5" right="5" alignment="middle">
+							<Label text="Tide Speed/Amplitude" />
+							<HSlider id="waterSpeed" value={_waterSpeed*1000} minimum="0" maximum="5" event="change:onWaterSpeedChange"/>
+							<HSlider id="waterAmp" value={_baseWaterLevelOscillate} minimum="0" maximum="256" event="change:onWaterAmpChange"/>
+						</HBox>
+						<HBox bottom="5" left="5" right="5" alignment="middle">
+							<Label text="Water Level / Terrain LOD" />
+							<HSlider id="waterLevel" value={_baseWaterLevel} minimum="-20000" maximum="0" event="change:onWaterLevelChange"/>
+							<HSlider id="terrainLOD" value={START_LOD} minimum="1" maximum="30" event="change:onTerrainLODChange"/>
+						</HBox>
+						
 						<PushButton label="Enter full screen" event="click:onFSButtonClicked"/>
 					</VBox>
 				</Window>
@@ -385,6 +447,7 @@ package examples
 		private var optionsWindow:Window;		
 		private var _loadedPage:QuadTreePage;
 		private var standardMaterial:StandardTerrainMaterial2;
+		private var terrainLOD:TerrainLOD;
 
 
 		
@@ -394,8 +457,10 @@ package examples
 			Style.setStyle(Style.DARK);
 			
 			stage.addChild(guiContainer);
+			guiContainer.addEventListener(MouseEvent.MOUSE_DOWN, stopPropagation);
 			var minco:MinimalConfigurator = new MinimalConfigurator(this);
 			minco.parseXML(view);
+			
 			
 			// Get refs
 			waterColorR = (minco.getCompById("waterColorR") as InputText);
@@ -407,6 +472,7 @@ package examples
 			perturbRefractiveBy = (minco.getCompById("perturbRefractiveSlider") as HSlider);
 			tintAmount = (minco.getCompById("tintSlider") as HSlider);
 			optionsWindow = (minco.getCompById("options") as Window);
+			guiContainer.addChild(optionsWindow);
 			
 			// Set defaults
 			waterColorR.text = String(waterMaterial.waterColorR);
@@ -422,6 +488,11 @@ package examples
 			waterColorR.addEventListener(Event.CHANGE, onWaterColorChange);
 			waterColorG.addEventListener(Event.CHANGE, onWaterColorChange);
 			waterColorB.addEventListener(Event.CHANGE, onWaterColorChange);
+		}
+		
+		private function stopPropagation(e:MouseEvent):void 
+		{
+			e.stopPropagation();
 		}
 		
 		/*---------------------

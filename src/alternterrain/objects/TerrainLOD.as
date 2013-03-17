@@ -119,6 +119,8 @@ package alternterrain.objects
 		private var _vOffsets:Vector.<int>;
 		private var _vDistances:Vector.<int>;
 		
+		public var waterLevel:Number = -Number.MAX_VALUE;
+		
 
 		/**
 		 * 
@@ -691,7 +693,12 @@ package alternterrain.objects
 		
 		public function cullingInFrustum(culling:int, minX:Number, minY:Number, minZ:Number, maxX:Number, maxY:Number, maxZ:Number):int 
 		{
+				if (maxZ < waterLevel) {
+					
+					return -1;
+				}
 			
+				
 				var frustum:CullingPlane = _frustum;
 				var temp:Number = minY;
 				minY = -maxY;

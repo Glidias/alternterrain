@@ -27,6 +27,7 @@ package alternterrainxtras.materials
 		
 		public function visit(cd:QuadChunkCornerData, root:QuadTreePage, patchShift:int, lookupIndex:int):void 
 		{
+			_useWaterMode = _waterMode > 0 ? cd.Square.MinY < waterLevel ? _waterMode : 0 : 0;
 			
 			this.lookupIndex = lookupIndex;
 			

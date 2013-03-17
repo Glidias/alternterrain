@@ -548,7 +548,7 @@ public	function UpdateAux(cd:QuadChunkCornerData, camera:Vector3D, CenterError:N
 		*/
 		///* #else if positiveNegativeShortHeights
 			MinY = input.readShort();
-			MaxY = input.readUnsignedShort();
+			MaxY = input.readShort();
 		//#end if */
 		
 		error = input.readUnsignedShort();

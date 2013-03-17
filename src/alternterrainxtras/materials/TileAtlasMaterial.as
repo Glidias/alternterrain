@@ -58,6 +58,8 @@ package alternterrainxtras.materials {
             protected static const GLOSSINESS_MAP_BIT:int = 2;
             protected static const SPECULAR_MAP_BIT:int = 4;
             protected static const OPACITY_MAP_BIT:int = 8;
+			private static const WATER_BIT:int = 16;
+			
             protected static const NORMAL_MAP_SPACE_OFFSET:int = 4;    // shift value
             protected static const ALPHA_TEST_OFFSET:int = 6;
             protected static const OMNI_LIGHT_OFFSET:int = 8;
@@ -72,9 +74,21 @@ package alternterrainxtras.materials {
             protected var programsCache:Dictionary;
             protected var groups:Vector.<Vector.<Light3D>> = new Vector.<Vector.<Light3D>>();
 			
+			protected var _waterMode:int = 0;
+			protected var _useWaterMode:int = 0;
+			public var waterLevel:Number = 0;
+			
 			// integer UV coodrinate offset
 			public var uvOffsetX:Number = 0;
 			public var uvOffsetY:Number = 0;
+			
+		// KIL water level fragment shader - waterMode = 1
+		private static const kilWaterLevel:Procedure = new Procedure([
+			"#c0=cWater",
+			"#v0=vPosition",
+			"sub t0.z, v0.z, c0.z",
+			"kil t0.z"
+		], "kilWaterLevel");
             
     static alternativa3d const _passUVProcedure:Procedure = new Procedure(["#v0=vUV", "#v1=vUV1", "#a0=aUV", "#c0=cUVProperties", 
 		"mov t0, a0",
@@ -769,6 +783,17 @@ package alternterrainxtras.materials {
                 }
                 _normalMapSpace = value;
             }
+			
+			public function get waterMode():int 
+			{
+				return _waterMode;
+			}
+			
+			public function set waterMode(value:int):void 
+			{
+				_waterMode = value;
+				_useWaterMode = value;
+			}
 
             /**
              * Specular map.
@@ -1064,13 +1089,17 @@ package alternterrainxtras.materials {
                 // 14-16 bits - SpotLight count
                 // 17-18 bit - Shadow Type (PCF, SIMPLE, NONE)
 
-                var key:int = materialKey | (opacityMap != null ? OPACITY_MAP_BIT : 0) | (alphaTest << ALPHA_TEST_OFFSET);
+                var key:uint = materialKey | (opacityMap != null ? OPACITY_MAP_BIT : 0) | (alphaTest << ALPHA_TEST_OFFSET);
+				key |= _useWaterMode > 0 ? WATER_BIT : 0;
+				
                 var program:TileAtlasMaterialProgram = programs[key];
 
                 if (program == null) {
                     var vertexLinker:Linker = new Linker(Context3DProgramType.VERTEX);
                     var fragmentLinker:Linker = new Linker(Context3DProgramType.FRAGMENT);
                     var i:int;
+					
+					if (key & WATER_BIT) fragmentLinker.addProcedure(kilWaterLevel);
 
                     // Merge program using lightsGroup
                     // add property useShadow
@@ -1336,6 +1365,7 @@ package alternterrainxtras.materials {
                  // Set options for a surface. X should be 0.
                  drawUnit.setFragmentConstantsFromNumbers(program.cSurface, 0, glossiness, specularPower, 1);
                 drawUnit.setFragmentConstantsFromNumbers(program.cThresholdAlpha, alphaThreshold, 0, 0, alpha);
+				if (_useWaterMode > 0) drawUnit.setFragmentConstantsFromNumbers(program.cWater, 0, 0, waterLevel, 1);
               
                 // mine constants    
                 drawUnit.setFragmentConstantsFromNumbers(program.cTilePaddSize, tilePaddingU, tilePaddingV, camera.focalLength, .5 );  // last values for dummy testing
@@ -1825,6 +1855,7 @@ import alternativa.engine3d.materials.ShaderProgram;
         
         public var cF:int = -1;
         public var cAtlasTiles:int = -1;
+		public var cWater:int = -1;
         
         public var cTilePaddSize:int = -1;  
         public var cTileFrac:int = -1;
@@ -1862,6 +1893,7 @@ import alternativa.engine3d.materials.ShaderProgram;
             cAmbientColor = fragmentShader.findVariable("cAmbientColor");
             cSurface = fragmentShader.findVariable("cSurface");
             cThresholdAlpha = fragmentShader.findVariable("cThresholdAlpha");
+			cWater = fragmentShader.findVariable("cWater");
             sDiffuse = fragmentShader.findVariable("sDiffuse"); 
             sOpacity = fragmentShader.findVariable("sOpacity");
             sBump = fragmentShader.findVariable("sBump");
