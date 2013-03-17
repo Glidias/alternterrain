@@ -10,8 +10,10 @@ package examples
 	import alternativa.engine3d.lights.AmbientLight;
 	import alternativa.engine3d.lights.DirectionalLight;
 	import alternativa.engine3d.loaders.ParserCollada;
+	import alternativa.engine3d.materials.FillMaterial;
 	import alternativa.engine3d.materials.NormalMapSpace;
 	import alternativa.engine3d.materials.StandardTerrainMaterial2;
+	import alternativa.engine3d.materials.TextureZClipMaterial;
 	import alternativa.engine3d.materials.TextureMaterial;
 	import alternativa.engine3d.objects.Mesh;
 	import alternativa.engine3d.objects.SkyBox;
@@ -24,6 +26,7 @@ package examples
 	import com.bit101.components.CheckBox;
 	import eu.nekobit.alternativa3d.materials.WaterMaterial;
 	import flash.display.BitmapData;
+	import flash.geom.Vector3D;
 	import flash.utils.ByteArray;
 	import flash.utils.getTimer;
 	
@@ -269,18 +272,23 @@ package examples
 			
 			
 			// Teapot	 (there's a problem with including teapot in the scene). DOesn't work with other objects!
-			/*
+			////*
 			scene.addChild(teapotContainer);
 			var parser:ParserCollada = new ParserCollada();
 			parser.parse(XML(new Teapot()));
 			teapot = parser.getObjectByName("static_teapot") as Mesh;
-			teapot.x = 1000;
-			teapot.z = waterLevel + 230;
-			teapot.setMaterialToAllSurfaces(new TextureMaterial(new BitmapTextureResource(new PlatedMetal().bitmapData)));
+			teapotContainer.x = camera.x;
+			teapotContainer.z = camera.z;
+			teapotContainer.y = camera.y;
+			teapot.x = 1500;
+			teapot.z = -500;
+			
+			teapot.setMaterialToAllSurfaces(teapotMaterial=new TextureZClipMaterial(new BitmapTextureResource(new PlatedMetal().bitmapData)));
+			teapotMaterial.waterLevel = waterLevel;
 			uploadResources(teapot.getResources());
 			teapotContainer.addChild(teapot);
-			*/
-			
+			//*/
+		//	scene.removeChild(terrainLOD);
 			// Uncomment and see how this affects rendered reflection
 			/*
 			 var obstacle:Box = new Box(100,100,100,1,1,1,false,new FillMaterial(0x00FF0F));
@@ -325,6 +333,7 @@ package examples
 		public var _baseWaterLevel:Number = waterLevel;// -20000 + _baseWaterLevelOscillate;
 		public var _waterSpeed:Number = 0;// 2.0 * .001;
 		public var clipReflection:Boolean = true;
+		public var teapotMaterial:TextureZClipMaterial;
 		private var _lastTime:int = -1;
 		private var _waterOscValue:Number = 0;
 	
@@ -335,26 +344,40 @@ package examples
 			camera.startTimer();		
 			controller.update();
 			
+					teapot.rotationZ -= 0.02;
+			teapotContainer.rotationZ = camera.rotationZ + .5* Math.PI;
+				teapotContainer.x = camera.x;
+			teapotContainer.z = camera.z;
+			teapotContainer.y = camera.y;
+			
+			
 				if (_lastTime < 0) _lastTime = curTime;
 			var timeElapsed:int = curTime - _lastTime;
-		
-			
+	
 			_waterOscValue += timeElapsed * _waterSpeed;
 			
 			 waterLevel = _baseWaterLevel + Math.sin(_waterOscValue) * (_waterSpeed != 0 ? _baseWaterLevelOscillate : 0);
+			
+			var waterLocalPos:Vector3D = teapot.globalToLocal(new Vector3D(0, 0, waterLevel));
+			 teapotMaterial.waterLevel =  waterLocalPos.z - reflectClipOffset; 
 			plane.z = waterLevel;
 			
 			standardMaterial.waterLevel = waterLevel - reflectClipOffset;
 			terrainLOD.waterLevel = waterLevel - reflectClipOffset;
-		
+			
+	
 			//standardMaterial.waterLevel = terrainLOD.waterLevel = waterLevel - perturbReflectiveBy.value * 200;
 			waterMaterial.update(stage3D, camera, plane, hideFromReflection);
 			camera.stopTimer();
 			
-			// Update teapot rotation			
-		//	teapotContainer.rotationZ += 0.012;
-		//	teapot.rotationZ -= 0.02;
+			// Update teapot rotation		
+			///*
+		//	teapotContainer.rotationZ = 0.5;
 	
+			//*/
+	
+			
+			 teapotMaterial.waterLevel =  waterLocalPos.z; 
 			standardMaterial.waterLevel  = waterLevel;
 			terrainLOD.waterLevel = waterLevel;
 			
@@ -419,6 +442,7 @@ package examples
 						<HBox bottom="5" left="5" right="5" alignment="middle">
 							<Label text="Water Fresnel multiplier:" />
 							<HSlider id="fresnelSlider" minimum="0.0" maximum="1.0" event="change:onFresnelCoefChange"/>
+							<CheckBox label="Show teapot" selected="false" event="change:onTeapotVisChange" />
 						</HBox>
 						<HBox bottom="5" left="5" right="5" alignment="middle">
 							<Label text="Water Reflection (fresnel -1) multiplier:" />
@@ -518,6 +542,10 @@ package examples
 			waterMaterial.waterColorR = parseFloat(waterColorR.text);
 			waterMaterial.waterColorG = parseFloat(waterColorG.text);
 			waterMaterial.waterColorB = parseFloat(waterColorB.text);
+		}
+		
+		public function onTeapotVisChange(e:Event):void {
+			teapot.visible = (e.currentTarget as CheckBox).selected;
 		}
 		
 		public function onFresnelCoefChange(e:Event):void
