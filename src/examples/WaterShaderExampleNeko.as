@@ -21,6 +21,7 @@ package examples
 	import alternterrain.core.QuadTreePage;
 	import alternterrain.objects.TerrainLOD;
 	import alternterrain.resources.LoadAliases;
+	import com.bit101.components.CheckBox;
 	import eu.nekobit.alternativa3d.materials.WaterMaterial;
 	import flash.display.BitmapData;
 	import flash.utils.ByteArray;
@@ -132,6 +133,8 @@ package examples
 	}
 		
 		private var waterLevel:Number = -20000;
+		public var reflectClipOffset:Number = 0;
+				
 		private function onContext3DCreated(e:Event):void			
 		{
 			// Container
@@ -219,7 +222,7 @@ package examples
             directionalLight.y = -100;
             directionalLight.z = 100;
             directionalLight.lookAt(0, 0, 0);
-			directionalLight.intensity = .5;
+			directionalLight.intensity = .7;
             scene.addChild(directionalLight);
 			
 			
@@ -318,7 +321,7 @@ package examples
 		// todo: some custom culling method to make up for absence of clipping planes?
 		private var hideFromReflection:Vector.<Object3D> = new Vector.<Object3D>();
 		
-		public var _baseWaterLevelOscillate:Number = 0;// 80;
+		public var _baseWaterLevelOscillate:Number =  80;
 		public var _baseWaterLevel:Number = waterLevel;// -20000 + _baseWaterLevelOscillate;
 		public var _waterSpeed:Number = 0;// 2.0 * .001;
 		public var clipReflection:Boolean = true;
@@ -331,8 +334,20 @@ package examples
 			
 			camera.startTimer();		
 			controller.update();
+			
+				if (_lastTime < 0) _lastTime = curTime;
+			var timeElapsed:int = curTime - _lastTime;
 		
-			standardMaterial.waterMode  = clipReflection ? 1 : 0;  // Clip reflection toggler - actually rendering reflection without clipping may be better
+			
+			_waterOscValue += timeElapsed * _waterSpeed;
+			
+			 waterLevel = _baseWaterLevel + Math.sin(_waterOscValue) * (_waterSpeed != 0 ? _baseWaterLevelOscillate : 0);
+			plane.z = waterLevel;
+			
+			standardMaterial.waterLevel = waterLevel - reflectClipOffset;
+			terrainLOD.waterLevel = waterLevel - reflectClipOffset;
+		
+			//standardMaterial.waterLevel = terrainLOD.waterLevel = waterLevel - perturbReflectiveBy.value * 200;
 			waterMaterial.update(stage3D, camera, plane, hideFromReflection);
 			camera.stopTimer();
 			
@@ -340,21 +355,20 @@ package examples
 		//	teapotContainer.rotationZ += 0.012;
 		//	teapot.rotationZ -= 0.02;
 	
-			standardMaterial.waterMode  = 1; // Clip reflection toggler
+			standardMaterial.waterLevel  = waterLevel;
+			terrainLOD.waterLevel = waterLevel;
+			
 			camera.render(stage3D);
 			
-			if (_lastTime < 0) _lastTime = curTime;
-			var timeElapsed:int = curTime - _lastTime;
-			_lastTime = curTime;
-			
-			_waterOscValue += timeElapsed * _waterSpeed;
-			plane.z = standardMaterial.waterLevel = terrainLOD.waterLevel = waterLevel = _baseWaterLevel + Math.sin(_waterOscValue) * _baseWaterLevelOscillate;
+				_lastTime = curTime;
+		
 		}
 		
-		public function onClipReflectionChange(e:Event):void {
-			clipReflection = (e.currentTarget).selected;
+
+	
+		public function onReflectClipOffsetChange(e:Event):void {
+			reflectClipOffset = (e.currentTarget).value;
 		}
-		
 		public function onTerrainLODChange(e:Event):void {
 			terrainLOD.detail = (e.currentTarget).value;
 		}
@@ -411,10 +425,10 @@ package examples
 							<HSlider id="reflectionMultiplierSlider" minimum="0.0" maximum="1.0" event="change:onFresnelCoefChange"/>
 						</HBox>
 						<HBox bottom="5" left="5" right="5" alignment="middle">
-							<Label text="Water Perturb reflection by:" />
+							<Label text="Water Perturb reflection:" />
 							<HSlider id="perturbReflectiveSlider" minimum="0.0" maximum="0.5" event="change:onPerturbChange"/>
-							<Label text="Clip reflection:" />
-							<CheckBox id="clipReflection" selected={clipReflection} event="change:onClipReflectionChange"/>
+							<Label text="Clip offset:" />
+							<HSlider id="Reflect clip offset" value={reflectClipOffset} minimum="0" maximum="800" event="change:onReflectClipOffsetChange"/>
 						</HBox>
 						<HBox bottom="5" left="5" right="5" alignment="middle">
 							<Label text="Water Perturb refraction by:" />

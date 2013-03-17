@@ -134,7 +134,7 @@ package com.bit101.components
 		 */
 		protected function onClick(event:MouseEvent):void
 		{
-			_selected = !_selected;
+			selected = !_selected;
 			_button.visible = _selected;
 		}
 		
