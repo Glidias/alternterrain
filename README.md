@@ -7,3 +7,5 @@ Example code is already working, but tutorials (to get you started with terrain 
 
 ![terrain](http://glidias.uphero.com/terrainwater2.jpg)
 ![terrain](http://glidias.uphero.com/terrainwater3.jpg)
+	
+Water material credited to Varnius. https://github.com/Varnius/Alternativa3DCustomMaterials
