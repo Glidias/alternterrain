@@ -153,22 +153,27 @@ package examples
 				childOrigin.z = child.inverseTransform.i*origin.x + child.inverseTransform.j*origin.y + child.inverseTransform.k*origin.z + child.inverseTransform.l;
 				childDirection.x = child.inverseTransform.a*direction.x + child.inverseTransform.b*direction.y + child.inverseTransform.c*direction.z;
 				childDirection.y = child.inverseTransform.e*direction.x + child.inverseTransform.f*direction.y + child.inverseTransform.g*direction.z;
-				childDirection.z = child.inverseTransform.i*direction.x + child.inverseTransform.j*direction.y + child.inverseTransform.k*direction.z;
+				childDirection.z = child.inverseTransform.i * direction.x + child.inverseTransform.j * direction.y + child.inverseTransform.k * direction.z;
 				
 				//childOrigin.y =  childOrigin.y * -1;
+			//	childDirection.w = 512;
 				
 				var data:RayIntersectionData = terrainLOD.intersectRay(childOrigin, childDirection);
 				if (data != null) {
-					if (data.object == null || data.point == null)	throw new Error(data.object + ", " + data.point);
+				
 					data.point = data.object.localToGlobal(data.point);
 					obstacle.x = data.point.x;
 					obstacle.y = data.point.y;
 					obstacle.z = data.point.z;
+					obstacleMat.color = data.time != 0 ? 0xFF0000 : 0x0000FF;
 				
 				}
 				else {
-					//throw new Error("B");
+					obstacleMat.color = 0xFFFFFF;
 				}
+			}
+			else if (e.keyCode === Keyboard.TAB) {
+				terrainLOD.debug = !terrainLOD.debug;
 			}
 		}
 		
@@ -181,7 +186,7 @@ package examples
 	
 	}
 		
-		private var waterLevel:Number =  -20000;
+		private var waterLevel:Number =  -40000;
 		public var reflectClipOffset:Number = 0;
 				
 		private function onContext3DCreated(e:Event):void			
@@ -282,7 +287,7 @@ package examples
 			terrainLOD.waterLevel = waterLevel;
 			
 			standardMaterial = new StandardTerrainMaterial2(groundTextureResource , new BitmapTextureResource( _normalMapData), null, null  );
-			
+			standardMaterial.uvMultiplier2 = 1 / 1;
 			//throw new Error([standardMaterial.opaquePass, standardMaterial.alphaThreshold, standardMaterial.transparentPass]);
 			//standardMaterial.transparentPass = false;
 			standardMaterial.normalMapSpace = NormalMapSpace.OBJECT;
@@ -299,7 +304,7 @@ package examples
 			standardMaterial.pageSize = _loadedPage.heightMap.RowWidth - 1;
 		
 
-			terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial );  //new FillMaterial(0xFF0000, 1)
+			terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial);  //new FillMaterial(0xFF0000, 1)
 			var hWidth:Number = terrainLOD.boundBox.maxX * .5;
 			terrainLOD.x -= hWidth;
 			terrainLOD.y += hWidth;
@@ -339,7 +344,7 @@ package examples
 		//	scene.removeChild(terrainLOD);
 			// Uncomment and see how this affects rendered reflection
 			///*
-			 obstacle = new Box(400,400,400,1,1,1,false,new FillMaterial(0xFF000F));
+			 obstacle = new Box(400,400,400,1,1,1,false, obstacleMat = new FillMaterial(0xFF000F, .5));
 			obstacle.x = terrainLOD.x + terrainLOD.boundBox.minX; 
 			obstacle.y = terrainLOD.y + terrainLOD.boundBox.minY;
 			obstacle.z = waterLevel;
@@ -519,7 +524,7 @@ package examples
 						<HBox bottom="5" left="5" right="5" alignment="middle">
 							<Label text="Water Level / Terrain LOD" />
 							<HSlider id="waterLevel" value={_baseWaterLevel} minimum="-20000" maximum="0" event="change:onWaterLevelChange"/>
-							<HSlider id="terrainLOD" value={START_LOD} minimum="1" maximum="30" event="change:onTerrainLODChange"/>
+							<HSlider id="terrainLOD" value={START_LOD} minimum={START_LOD} maximum="30" event="change:onTerrainLODChange"/>
 						</HBox>
 						
 						<PushButton label="Enter full screen" event="click:onFSButtonClicked"/>
@@ -540,6 +545,7 @@ package examples
 		private var standardMaterial:StandardTerrainMaterial2;
 		private var terrainLOD:TerrainLOD;
 		private var obstacle:Box;
+		private var obstacleMat:FillMaterial;
 
 
 		

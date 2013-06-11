@@ -82,7 +82,7 @@ package alternativa.engine3d.materials {
 			public var uvOffsetX:Number = 0;
 			public var uvOffsetY:Number = 0;
 			public var uvMultiplier:Number = 1;
-			private var uvMultiplier2:Number  =1/4  // for tiling size , a fractional means larger tile
+			public var uvMultiplier2:Number  =1/4  // for tiling size , a fractional means larger tile
 			public var pageSize:int = 1024;
 			
 
