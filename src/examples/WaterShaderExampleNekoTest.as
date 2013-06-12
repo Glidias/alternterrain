@@ -27,6 +27,7 @@ package examples
 	import com.bit101.components.CheckBox;
 	import eu.nekobit.alternativa3d.materials.WaterMaterial;
 	import flash.display.BitmapData;
+	import flash.display.DisplayObject;
 	import flash.events.KeyboardEvent;
 	import flash.geom.Vector3D;
 	import flash.ui.Keyboard;
@@ -109,6 +110,8 @@ package examples
 		[Embed(source="assets/edgeblend_mist.png")]
 		private var EDGE:Class;
 		
+		private var crosshair:DisplayObject;
+		
 		public function WaterShaderExampleNekoTest()
 		{
 			stage.scaleMode = StageScaleMode.NO_SCALE;
@@ -130,6 +133,19 @@ package examples
 			
 			stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
 			
+			crosshair = new CrossHair();
+			crosshair.x = stage.stageWidth * .5;
+			crosshair.y = stage.stageHeight * .5;
+			addEventListener(Event.RESIZE, onStageResize);
+			
+			tileTrace = new Box(16, 16, 3344, 1, 1, 1, false, new FillMaterial(0xFFFF00, .4) );
+			
+		}
+		
+		private function onStageResize(e:Event):void 
+		{
+			crosshair.x = stage.stageWidth * .5;
+			crosshair.y = stage.stageHeight * .5;
 		}
 		
 		private function onKeyDown(e:KeyboardEvent):void 
@@ -155,26 +171,54 @@ package examples
 				childDirection.y = child.inverseTransform.e*direction.x + child.inverseTransform.f*direction.y + child.inverseTransform.g*direction.z;
 				childDirection.z = child.inverseTransform.i * direction.x + child.inverseTransform.j * direction.y + child.inverseTransform.k * direction.z;
 				
+				//if (childDirection.x < 0 || childDirection.y > 0) return;  
 				//childOrigin.y =  childOrigin.y * -1;
 			//	childDirection.w = 512;
 				
 				var data:RayIntersectionData = terrainLOD.intersectRay(childOrigin, childDirection);
 				if (data != null) {
-				
 					data.point = data.object.localToGlobal(data.point);
-					obstacle.x = data.point.x;
-					obstacle.y = data.point.y;
-					obstacle.z = data.point.z;
+					obstacle.x = data.point.x //+ 200;
+					obstacle.y = data.point.y //+ 200;
+					obstacle.z = data.point.z //- 200;
 					obstacleMat.color = data.time != 0 ? 0xFF0000 : 0x0000FF;
 				
 				}
 				else {
+					
+					obstacle.x = origin.x + direction.x*1512;
+					obstacle.y = origin.y + direction.y*1512;
+					obstacle.z =origin.z + direction.z*1512;
 					obstacleMat.color = 0xFFFFFF;
+					
+					for (var i:int = 0; i < terrainLOD.tracedTiles.length; i++) {
+						var tile:Object3D = tileTrace.clone();
+						_traceTiles.push(tile);
+						var pos:Vector3D = terrainLOD.localToGlobal( new Vector3D(terrainLOD.tracedTiles[i].x, terrainLOD.tracedTiles[i].y, terrainLOD.tracedTiles[i].z) );
+						tile.x = pos.x;
+						tile.y = pos.y;
+						tile.z = pos.z;
+						//uploadResources(tile.getResources());
+						scene.addChild(tile);
+					}
+					
 				}
 			}
 			else if (e.keyCode === Keyboard.TAB) {
 				terrainLOD.debug = !terrainLOD.debug;
 			}
+			else if (e.keyCode === Keyboard.B) {
+				
+				for each(var item:Object3D in _traceTiles) {
+					scene.removeChild(item);
+				}
+				
+				_traceTiles.length = 0;
+			}
+		}
+		
+		private function traceTiles():void {
+			
 		}
 		
 			private function processDataAsLoadedPage(data:ByteArray):void 
@@ -209,6 +253,9 @@ package examples
 			addChild(camera.diagram);
 			camera.view.hideLogo();			
 			scene.addChild(camera);
+			addChild(crosshair);
+			
+			uploadResources( tileTrace.getResources() );
 			
 			// Controller
 			controller = new SimpleObjectController(stage, camera, settings.cameraSpeed, settings.cameraSpeedMultiplier);
@@ -283,6 +330,7 @@ package examples
 			
 			// TerrainLOD
 			terrainLOD = new TerrainLOD();
+			terrainLOD.debug = true;
 			terrainLOD.detail = START_LOD;
 			terrainLOD.waterLevel = waterLevel;
 			
@@ -546,6 +594,8 @@ package examples
 		private var terrainLOD:TerrainLOD;
 		private var obstacle:Box;
 		private var obstacleMat:FillMaterial;
+		private var tileTrace:Box;
+		private var _traceTiles:Vector.<Object3D> = new Vector.<Object3D>();
 
 
 		
@@ -631,6 +681,8 @@ package examples
 		}
 	}
 }
+import flash.display.Sprite;
+import flash.filters.DropShadowFilter;
 
 class TemplateSettings {
 	public var cameraSpeedMultiplier:Number = 3;
@@ -639,3 +691,23 @@ class TemplateSettings {
 	public var viewBackgroundColor:uint;
 	
 }
+
+class CrossHair extends Sprite {
+    public function CrossHair() {
+        graphics.lineStyle(1, 0xDDEE44, 1);
+        graphics.moveTo(0, -2);
+        graphics.lineTo(0, -6);
+        
+        graphics.moveTo(0, 2);
+        graphics.lineTo(0, 6);
+        
+        graphics.moveTo(2, 0);
+        graphics.lineTo(6, 0);
+        
+        graphics.moveTo(-2, 0);
+        graphics.lineTo( -6, 0);
+        
+        filters = [new DropShadowFilter(1,45,0,1,0,0,1,1,false,false, false)];
+    }
+}
+    

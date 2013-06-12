@@ -309,6 +309,7 @@ package alternterrain.objects
 			*/
 			this.tileSize = tileSize;
 			this.tileShift = Math.round(Math.log(tileSize ) * Math.LOG2E);
+			
 			this.tileMod = tileSize  - 1;
 			
 			if ( uvTileSize > 0 && !QuadCornerData.isBase2(uvTileSize)) throw new Error("uvTileSize must be base 2!");
@@ -1225,6 +1226,8 @@ package alternterrain.objects
 			}
 			
 			
+			
+			
 		
 			// Performs per-polygon accruate raycasting on terrain at highest level of detail! (Could later provide support for LOD-based raycasting as well)
 			override public function intersectRay(origin:Vector3D, direction:Vector3D):RayIntersectionData {
@@ -1232,6 +1235,7 @@ package alternterrain.objects
 					var data:RayIntersectionData = null;
 					var result:RayIntersectionData = null;
 					var minTime:Number = 1e22;
+					tracedTiles.length = 0;
 					///*
 					
 					//*/
@@ -1277,40 +1281,48 @@ package alternterrain.objects
 					// If point isn't inside chunk, find starting intersection point of ray against bound of QuadChunkCornerData square
 					var px:Number = origin.x;
 					var py:Number = -origin.y;
-					var zVal:Number = origin.z;
-					
+					var zValStart:Number = origin.z;
+					var xi:int;
+					var yi:int;
 					if (px < cd.xorg || px >= cd.xorg + fullC || py < cd.zorg || py >= cd.zorg + fullC) {
 						if ( (t = calcBoundIntersection( result.point, origin, direction, cd.xorg, cd.zorg, cd.Square.MinY, cd.xorg + fullC, cd.zorg + fullC, cd.Square.MaxY  )) > 0 ) {
 							px = result.point.x;
 							py = -result.point.y;
-							zVal = result.point.z;
+							
+							py -= dy<0 ? 1 : -1;
+							px -= dx < 0 ? 1 : -1;
+							zValStart = result.point.z;
+							
+							//result.time = 0;
+				
+							xi = int(px - _currentPage.xorg) >> tileShift;	
+							yi = int(py - _currentPage.zorg) >> tileShift;
+							//if (dx < 0) xi -= 1;
+							//if (dy < 0 ) yi -= 1; 
 						}
 						else throw new Error("Should always have a positive intersection t:"+t)
 					}
+					else {
+						xi = int(px - _currentPage.xorg) >> tileShift;	
+						yi = int(py - _currentPage.zorg) >> tileShift;	
+					}
 					
 					// with starting point, check if there's a hit, otherwise continue with DDA process!
-					var xi:int = int(px - _currentPage.xorg) >> tileShift;	
-					var yi:int = int(py - _currentPage.zorg) >> tileShift;	
+					
+					
 					
 					var minxi:int = (cd.xorg-_currentPage.xorg) >> tileShift;
 					var minyi:int = (cd.zorg-_currentPage.zorg) >> tileShift;
-					var maxxi:int = minxi +  P_ACROSS - 1;
-					var maxyi:int = minyi + P_ACROSS - 1;
-					
-					
-					if ( xi < minxi || xi >= maxxi || yi < minyi || yi >= maxyi) return false;
-					if ( checkHitPatch(result, hm, xi, yi, zVal, origin, direction) ) return true;
-				
+					var maxxi:int = minxi +  P_ACROSS ;
+					var maxyi:int = minyi + P_ACROSS ;
+
 	
 					var xoff:Number = px / tileSize;  // integer modulus + floating point
 					xoff -= int(xoff);
 					var yoff:Number = py / tileSize;  // integer modulus + floating point
 					yoff -= int(yoff);
 					
-					// todo: derive z values
-					var zOff:Number;
-					var dzt:Number;
-					var zt:Number;
+			
 					
 					var maxt:Number = direction.w > 0 ? direction.w : 1e22;  // todo: do this outside loop!
 					
@@ -1326,7 +1338,7 @@ package alternterrain.objects
 						dxi = 1;
 					}
 					if (dy < 0) {
-						yt = -yoff / dy;
+						yt = -yoff / dy - 1;
 						dyt = -1 / dy;
 						dyi = -1;
 					} else {
@@ -1334,31 +1346,44 @@ package alternterrain.objects
 						dyt = 1 / dy;
 						dyi = 1;
 					}
+				
+				
+					offsetOriginX = px;
+					offsetOriginY = -py;
+					offsetOriginZ = zValStart;
+
+					//if (xi >= maxxi) xi = maxxi-1;
+					//if (yi >= maxyi) yi = maxyi - 1;
+					if ( xi < minxi || xi >= maxxi || yi < minyi || yi >= maxyi) throw new Error("Should not be:" + minxi + "/"+ xi + "/" + maxxi + ", "+ minyi+"/"+ yi + "/" + maxyi);
+					
+					
+					if ( checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction, t) ) return true;
 		
 				
 					while (true) {
 						if (xt < yt) {
 							xi += dxi;
-							t = xt;   // todo: add zVal
+							t = xt;  
 							xt += dxt;
 							
-							if ( checkHitPatch(result, hm, xi, yi, zVal, origin, direction) ) return true;
+							if ( checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction, t) ) return true;
 							
 						} else {
 							yi += dyi;
-							t = yt;  // todo: add zVal
+							t = yt; 
 							yt += dyt;
-							if ( checkHitPatch(result, hm, xi, yi, zVal, origin, direction) ) return true;   
+							if (  checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction, t) ) return true;   
 						}
 						
-						if (t >= maxt || xi < minxi || xi >= maxxi || yi < minyi || yi >= maxyi) {
+						//t >= maxt ||
+						if ( xi < minxi || xi >= maxxi || yi < minyi || yi >= maxyi) {
 							return false;
 							/*
 							t *= tileSize;
 							result.time = t;
 							result.point.x = px + direction.x * t;
 							result.point.y = -py + direction.y * t;
-							result.point.z = zVal + direction.z * t;
+							result.point.z = zValStart + direction.z * t;
 							return true;  // exit if we run outta bounds or outta ray-range time
 							*/
 						}
@@ -1366,6 +1391,8 @@ package alternterrain.objects
 					
 					return false;
 				}
+				
+
 				
 				private var _patchHeights:Vector.<int> = new Vector.<int>(4*3, true);
 				private static const TRI_ORDER_TRUE:Vector.<int> =  createTriOrderIndiceTable(true); // forward slash tri-patch
@@ -1375,13 +1402,13 @@ package alternterrain.objects
 					var indices:Vector.<int> = new Vector.<int>(6, true);
 					if (positive) {
 						//nw | se =  00 or 11   !=
-						indices[0] = 0; indices[1] = 3; indices[2] = 1;
-						indices[3] = 0; indices[4] = 2; indices[5] = 3;
+						indices[0] = 0; indices[1] = 2; indices[2] = 1;
+						indices[3] = 2; indices[4] = 3; indices[5] = 1;
 					}
 					else {
 						// ne | sw - 01 or 10   ==
-						indices[0] = 1; indices[1] = 2; indices[2] = 3;
-						indices[3] = 1; indices[4] = 0; indices[5] = 2;
+						indices[0] = 0; indices[1] = 3; indices[2] = 1;
+						indices[3] = 0; indices[4] = 2; indices[5] = 3;
 					}
 					return indices;
 				}
@@ -1455,29 +1482,39 @@ package alternterrain.objects
 								return false;
 				}
 				
-				private function checkHitPatch(result:RayIntersectionData, hm:HeightMapInfo, xi:int, yi:int, zVal:Number, origin:Vector3D, direction:Vector3D):Boolean 
+				// TODO: remove once doen testing
+				public var tracedTiles:Vector.<Vector3D> = new Vector.<Vector3D>();
+				private var offsetOriginX:Number;
+				private var offsetOriginY:Number;
+				private var offsetOriginZ:Number;
+				
+				private function checkHitPatch(result:RayIntersectionData, hm:HeightMapInfo, xi:int, yi:int, zVal:Number, origin:Vector3D, direction:Vector3D, t:Number):Boolean 
 				{
 
 					if (xi < 0 || yi < 0) return false;
-					
+				
 		
 					// highestPoint bound early reject
+					var lowestPoint:Number;
 					var highestPoint:Number = hm.Data[xi + yi * hm.RowWidth]; // nw
+					lowestPoint = highestPoint;
 					var hp:Number;
 					_patchHeights[2] = highestPoint;   // 0*3+2
 					hp =   hm.Data[(xi + 1) + (yi) * hm.RowWidth];  // ne
 					if (hp > highestPoint) highestPoint = hp;
+					if (hp < lowestPoint) lowestPoint = hp;
 					_patchHeights[5] = hp;  // 1*3+2
 					hp = hm.Data[xi + (yi+1) * hm.RowWidth]; //sw
 					if (hp > highestPoint) highestPoint = hp;
+					if (hp < lowestPoint) lowestPoint = hp;
 					_patchHeights[8] = hp;  // 2*3+2
 					hp = hm.Data[(xi+1) + (yi + 1) * hm.RowWidth];  // se
 					if (hp > highestPoint) highestPoint = hp;
+					if (hp < lowestPoint) lowestPoint = hp;
 					_patchHeights[11] = hp; // 3*3+2
 					
+				//	highestPoint += .5;
 				//	if (zVal > highestPoint) return false;
-					
-					
 					
 					// test for hit on 2 triangles
 					var whichFan:Vector.<int>  = (xi & 1) != (yi & 1) ? TRI_ORDER_TRUE : TRI_ORDER_FALSE;
@@ -1493,18 +1530,21 @@ package alternterrain.objects
 					var cx:Number; 
 					var cy:Number; 
 					var cz:Number;
-					
-					
+				
 					
 					ax = (_patchHeights[whichFan[0] * 3] + xi) *tileSize - _currentPage.xorg;
 					ay = (_patchHeights[whichFan[0] * 3 + 1] + yi) * tileSize - _currentPage.zorg; 
 					ay *= -1;
 					az = _patchHeights[whichFan[0] * 3 + 2];
 					
+					//tracedTiles.push( new Vector3D(ax+tileSize*.5, ay-tileSize*.5, highestPoint) );
+					tracedTiles.push( new Vector3D(  (offsetOriginX) + t * direction.x * tileSize,
+					(offsetOriginY) + t * direction.y * tileSize,
+					zVal) );
 					
-					result.point.x = ax;
-					result.point.y = ay;
-					result.point.z = az;
+					//result.point.x = ax;
+					//result.point.y = ay;
+					//result.point.z = az;
 				//	result.uv = new Point();
 				//	result.time = 0;
 				//	return true;
@@ -1519,7 +1559,12 @@ package alternterrain.objects
 					cy *= -1;
 					cz = _patchHeights[whichFan[2] * 3 + 2];
 					
-					if (intersectRayTri(result, origin.x, origin.y, origin.z, direction.x, direction.y, direction.z, ax, ay, az, bx, by, bz, cx, cy, cz) ) return true;
+					if (intersectRayTri(result, origin.x, origin.y, origin.z, direction.x, direction.y, direction.z, ax, ay, az, bx, by, bz, cx, cy, cz) ) {
+					//	result.point.x = (offsetOriginX) + t * direction.x * tileSize;
+						//result.point.y = (offsetOriginY) + t * direction.y * tileSize;
+						//result.point.z = zVal;
+						return true;
+					}
 					
 					
 					ax = (_patchHeights[whichFan[3] * 3] + xi) *tileSize - _currentPage.xorg;
@@ -1537,7 +1582,27 @@ package alternterrain.objects
 					cy *= -1;
 					cz = _patchHeights[whichFan[5] * 3 + 2];
 
-					if (intersectRayTri(result, origin.x, origin.y, origin.z, direction.x, direction.y, direction.z, ax, ay, az, bx, by, bz, cx, cy, cz) ) return true;
+					if (intersectRayTri(result, origin.x, origin.y, origin.z, direction.x, direction.y, direction.z, ax, ay, az, bx, by, bz, cx, cy, cz) ) {
+						//result.point.x = (offsetOriginX ) + t * direction.x * tileSize;
+						//result.point.y = (offsetOriginY) + t * direction.y * tileSize;
+						//result.point.z = zVal;
+						
+						return true;
+					}
+					
+					/*
+					if ( t*tileSize*direction.z < lowestPoint) {
+						//throw new Error("SHOULD NOT BE!");
+						result.point.x = ax;
+						result.point.y = ay;
+						result.point.z = az;
+						result.uv = new Point();
+						result.time = 0;
+					return true;
+					}
+					*/
+					
+					
 					
 					return false;
 				}
@@ -1688,6 +1753,7 @@ package alternterrain.objects
 					*/
 					state.enabledFlags = s.EnabledFlags;
 					mySurface.numTriangles = numTrianglesLookup[id]; 
+					//myGeometry._indexBuffer = indexBuffers[0];
 					myGeometry._indexBuffer = indexBuffers[id];
 					
 					
