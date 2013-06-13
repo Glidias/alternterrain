@@ -81,6 +81,7 @@ package alternterrain.objects
 		
 		
 		private var _cameraPos:Vector3D = new Vector3D();
+		private var _lastUpdateCameraPos:Vector3D = new Vector3D();
 		private var numTrianglesLookup:Vector.<int>;
 		private var indexSideLookup:Vector.<int> = new Vector.<int>(16, true);
 		private var cornerMask:Vector.<int>;
@@ -122,6 +123,14 @@ package alternterrain.objects
 		public var waterLevel:Number = -Number.MAX_VALUE;
 		
 		public var rayData:RayIntersectionData;
+		
+		private var _squaredDistUpdate:Number = 0;
+		
+		public function setUpdateRadius(val:Number):void {
+			var a:Number = Math.sin(Math.PI * .125) * val;
+			var b:Number = Math.cos(Math.PI * .125) * val;
+			_squaredDistUpdate = a * a + b * b;
+		}
 		
 
 		/**
@@ -673,6 +682,9 @@ package alternterrain.objects
 			_patchHeights[9] = 1;  // se
 			_patchHeights[10] = 1;
 			
+			_lastUpdateCameraPos.x = -1e22;
+			_lastUpdateCameraPos.y = -1e22;
+			_lastUpdateCameraPos.z = -1e22;
 			
 			mySurface.object = this;
 			mySurface.indexBegin = 0;
@@ -783,9 +795,25 @@ package alternterrain.objects
 				
 				quadOrderTable = QUAD_ORDER2;
 				
+				
+				var tz:Number;
+				
 				_cameraPos.x = cameraToLocalTransform.d;
 				_cameraPos.y = -cameraToLocalTransform.h;
 				_cameraPos.z = cameraToLocalTransform.l;
+				
+				tx = _cameraPos.x - _lastUpdateCameraPos.x;
+				ty = _cameraPos.y - _lastUpdateCameraPos.y;
+				tz = _cameraPos.z - _lastUpdateCameraPos.z;
+				
+				var doUpdate:Boolean = false;
+				if (tx * tx + ty * ty + tz * tz > _squaredDistUpdate) {
+					_lastUpdateCameraPos.x = _cameraPos.x;
+					_lastUpdateCameraPos.y = _cameraPos.y;
+					_lastUpdateCameraPos.z = _cameraPos.z;
+					doUpdate = true;
+				}
+				
 				camera.calculateFrustum(cameraToLocalTransform);
 				_frustum = camera.frustum;
 				
@@ -801,10 +829,11 @@ package alternterrain.objects
 					mySurface.material = !debug ? tree.material : _debugMaterial;
 					myLODMaterial = mySurface.material as ILODTerrainMaterial;
 					_currentPage = tree;
-
-					QuadChunkCornerData.BI = 0;
-					tree.Square.Update(tree, _cameraPos, detail, this , culling);  
-					QuadChunkCornerData.BI = 0;
+					if (doUpdate) {
+						QuadChunkCornerData.BI = 0;
+						 tree.Square.Update(tree, _cameraPos, detail, this , culling);  
+						QuadChunkCornerData.BI = 0;
+					}
 					drawQuad(tree, camera, lights, lightsLength, useShadow, culling);
 					QuadChunkCornerData.BI = 0;
 				}
@@ -907,9 +936,11 @@ package alternterrain.objects
 								
 								mySurface.material = !debug ? cd.material : _debugMaterial;
 								myLODMaterial = mySurface.material as ILODTerrainMaterial;
-								QuadChunkCornerData.BI = 0;
-								c.Update(cd, _cameraPos, detail, this , curCulling); 
-								QuadChunkCornerData.BI = 0;
+								if (doUpdate) {
+									QuadChunkCornerData.BI = 0;
+									c.Update(cd, _cameraPos, detail, this , curCulling); 
+									QuadChunkCornerData.BI = 0;
+								}
 								drawQuad(cd, camera, lights, lightsLength, useShadow, curCulling);
 							}
 						}
