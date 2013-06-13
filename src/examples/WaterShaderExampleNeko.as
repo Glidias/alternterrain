@@ -180,6 +180,10 @@ package examples
 				var data:RayIntersectionData = terrainLOD.intersectRay(childOrigin, childDirection);
 				if (data != null || waterData != null) {
 					//if (waterData) throw new Error(waterData.time + ", "+childOrigin + ", "+childDirection);
+					if (data != null) {
+						// TODO: time in TerrainLOD is a bit wrong at the moment. Need to check. FOr now, use this temp dotProduct fix!
+						data.time = (data.point.x - childOrigin.x) * direction.x + (data.point.y - childOrigin.y) * direction.y + (data.point.z - childOrigin.z) * direction.z;
+					}
 					data = data != null ? waterData == null || data.time < waterData.time ? data : waterData : waterData;
 					if (data == null) {
 						obstacle.x = origin.x + direction.x*1512;

@@ -1387,7 +1387,7 @@ package alternterrain.objects
 					}
 					
 					
-					if ( checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction, t) ) return true;
+					if ( checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction) ) return true;
 		
 				
 					while (true) {
@@ -1406,7 +1406,7 @@ package alternterrain.objects
 						//if (t < 0) throw new Error("Negative t! Should not be!");
 						
 								if ( t >= maxt || xi < minxi || xi >= maxxi || yi < minyi || yi >= maxyi) return false;
-							if (  checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction, t) ) return true;   
+							if (  checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction) ) return true;   
 
 					}
 					
@@ -1510,7 +1510,7 @@ package alternterrain.objects
 				private var offsetOriginZ:Number;
 				*/
 				
-				private function checkHitPatch(result:RayIntersectionData, hm:HeightMapInfo, xi:int, yi:int, zVal:Number, origin:Vector3D, direction:Vector3D, t:Number):Boolean 
+				private function checkHitPatch(result:RayIntersectionData, hm:HeightMapInfo, xi:int, yi:int, zVal:Number, origin:Vector3D, direction:Vector3D):Boolean 
 				{
 
 				

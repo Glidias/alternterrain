@@ -660,6 +660,10 @@ package alternterrain.objects
 			rayData.object = this;
 			rayData.point = new Vector3D();
 			
+			waterRayData = new RayIntersectionData();
+			waterRayData.object = this;
+			waterRayData.point = new Vector3D();
+			
 			_patchHeights[0] = 0;  // nw
 			_patchHeights[1] = 0;
 			_patchHeights[3] = 1;  // ne
@@ -1228,8 +1232,23 @@ package alternterrain.objects
 				return c;
 			}
 			
+			private var waterRayData:RayIntersectionData;
 			
-			
+			public function intersectRayWater(origin:Vector3D, direction:Vector3D):RayIntersectionData {
+				if (direction.z >= 0 || origin.z <= waterLevel) return null;
+				var result:RayIntersectionData = waterRayData;
+				var t:Number =  (origin.z - waterLevel) / direction.z;
+				
+				t = t < 0 ? -t : t;
+		
+				if (t >= (direction.w > 0 ? direction.w : 1e22)) return null;
+				
+				result.time = t;
+				result.point.x = origin.x + t * direction.x;
+				result.point.y = origin.y + t * direction.y;
+				result.point.z = origin.z + t* direction.z;
+				return result;
+			}
 			
 		
 			// Performs per-polygon accruate raycasting on terrain at highest level of detail! (Could later provide support for LOD-based raycasting as well)
@@ -1368,7 +1387,7 @@ package alternterrain.objects
 					}
 					
 					
-					if ( checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction, t) ) return true;
+					if ( checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction) ) return true;
 		
 				
 					while (true) {
@@ -1387,7 +1406,7 @@ package alternterrain.objects
 						//if (t < 0) throw new Error("Negative t! Should not be!");
 						
 								if ( t >= maxt || xi < minxi || xi >= maxxi || yi < minyi || yi >= maxyi) return false;
-							if (  checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction, t) ) return true;   
+							if (  checkHitPatch(result, hm, xi, yi, direction.z < 0 ? xt < yt ? zValStart+xt*direction.z*tileSize : zValStart+yt*direction.z*tileSize : zValStart+t*direction.z*tileSize, origin, direction) ) return true;   
 
 					}
 					
@@ -1491,7 +1510,7 @@ package alternterrain.objects
 				private var offsetOriginZ:Number;
 				*/
 				
-				private function checkHitPatch(result:RayIntersectionData, hm:HeightMapInfo, xi:int, yi:int, zVal:Number, origin:Vector3D, direction:Vector3D, t:Number):Boolean 
+				private function checkHitPatch(result:RayIntersectionData, hm:HeightMapInfo, xi:int, yi:int, zVal:Number, origin:Vector3D, direction:Vector3D):Boolean 
 				{
 
 				
