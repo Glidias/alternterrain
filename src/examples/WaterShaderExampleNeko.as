@@ -3,6 +3,7 @@ package examples
 	import alternativa.engine3d.controllers.SimpleObjectController;
 	import alternativa.engine3d.core.Camera3D;
 	import alternativa.engine3d.core.Object3D;
+	import alternativa.engine3d.core.RayIntersectionData;
 	import alternativa.engine3d.core.Renderer;
 	import alternativa.engine3d.core.Resource;
 	import alternativa.engine3d.core.VertexAttributes;
@@ -26,7 +27,10 @@ package examples
 	import com.bit101.components.CheckBox;
 	import eu.nekobit.alternativa3d.materials.WaterMaterial;
 	import flash.display.BitmapData;
+	import flash.display.DisplayObject;
+	import flash.events.KeyboardEvent;
 	import flash.geom.Vector3D;
+	import flash.ui.Keyboard;
 	import flash.utils.ByteArray;
 	import flash.utils.getTimer;
 	
@@ -44,6 +48,8 @@ package examples
 	import flash.display3D.Context3DRenderMode;
 	import flash.events.Event;
 	import flash.events.MouseEvent;
+	import alternativa.engine3d.alternativa3d;
+	use namespace alternativa3d;
 	
 	/**
 	 * Integrating LOD terrain with water.
@@ -104,6 +110,8 @@ package examples
 		[Embed(source="assets/edgeblend_mist.png")]
 		private var EDGE:Class;
 		
+		private var crosshair:DisplayObject;
+		
 		public function WaterShaderExampleNeko()
 		{
 			stage.scaleMode = StageScaleMode.NO_SCALE;
@@ -123,6 +131,112 @@ package examples
 			stage3D.addEventListener(Event.CONTEXT3D_CREATE, onContext3DCreated);
 			stage3D.requestContext3D(Context3DRenderMode.AUTO);
 			
+			stage.addEventListener(KeyboardEvent.KEY_DOWN, onKeyDown);
+			
+			crosshair = new CrossHair();
+			crosshair.x = stage.stageWidth * .5;
+			crosshair.y = stage.stageHeight * .5;
+			addEventListener(Event.RESIZE, onStageResize);
+			
+			tileTrace = new Box(16, 16, 3344, 1, 1, 1, false, new FillMaterial(0xFFFF00, .4) );
+			
+		}
+		
+		private function onStageResize(e:Event):void 
+		{
+			crosshair.x = stage.stageWidth * .5;
+			crosshair.y = stage.stageHeight * .5;
+		}
+		
+		private function onKeyDown(e:KeyboardEvent):void 
+		{
+			if (e.keyCode === Keyboard.F) {
+				//terrainLOD.intersectRay(
+				var origin:Vector3D = new Vector3D();
+				var direction:Vector3D = new Vector3D();
+				
+				
+				var childOrigin:Vector3D = new Vector3D();
+				var childDirection:Vector3D = new Vector3D();
+				
+				camera.calculateRay(origin, direction, camera.view.width * .5, camera.view.height * .5);
+		
+				if (terrainLOD.transformChanged) terrainLOD.composeTransforms();
+					
+				var child:Object3D = terrainLOD;
+				childOrigin.x = child.inverseTransform.a*origin.x + child.inverseTransform.b*origin.y + child.inverseTransform.c*origin.z + child.inverseTransform.d;
+				childOrigin.y = child.inverseTransform.e*origin.x + child.inverseTransform.f*origin.y + child.inverseTransform.g*origin.z + child.inverseTransform.h;
+				childOrigin.z = child.inverseTransform.i*origin.x + child.inverseTransform.j*origin.y + child.inverseTransform.k*origin.z + child.inverseTransform.l;
+				childDirection.x = child.inverseTransform.a*direction.x + child.inverseTransform.b*direction.y + child.inverseTransform.c*direction.z;
+				childDirection.y = child.inverseTransform.e*direction.x + child.inverseTransform.f*direction.y + child.inverseTransform.g*direction.z;
+				childDirection.z = child.inverseTransform.i * direction.x + child.inverseTransform.j * direction.y + child.inverseTransform.k * direction.z;
+				
+				//if (childDirection.x < 0 || childDirection.y > 0) return;  
+				//childOrigin.y =  childOrigin.y * -1;
+				//childDirection.w = Number.MAX_VALUE;
+				
+				
+				var waterData:RayIntersectionData = terrainLOD.intersectRayWater(childOrigin, childDirection);
+				var data:RayIntersectionData = terrainLOD.intersectRay(childOrigin, childDirection);
+				if (data != null || waterData != null) {
+					//if (waterData) throw new Error(waterData.time + ", "+childOrigin + ", "+childDirection);
+					data = data != null ? waterData == null || data.time < waterData.time ? data : waterData : waterData;
+					if (data == null) {
+						obstacle.x = origin.x + direction.x*1512;
+						obstacle.y = origin.y + direction.y*1512;
+						obstacle.z =origin.z + direction.z*1512;
+						obstacleMat.color = 0xFFFFFF;
+					}
+					else {
+						data.point = data.object.localToGlobal(data.point);
+						obstacle.x = data.point.x //+ 200;
+						obstacle.y = data.point.y //+ 200;
+						obstacle.z = data.point.z //- 200;
+						obstacleMat.color = data.time != 0 ? 0xFF0000 : 0x0000FF;
+					}
+				
+				}
+				else {
+					
+					obstacle.x = origin.x + direction.x*1512;
+					obstacle.y = origin.y + direction.y*1512;
+					obstacle.z =origin.z + direction.z*1512;
+					obstacleMat.color = 0xFFFFFF;
+					
+					//traceRayPoints();
+					
+				}
+			}
+			else if (e.keyCode === Keyboard.TAB) {
+				terrainLOD.debug = !terrainLOD.debug;
+			}
+			else if (e.keyCode === Keyboard.B) {
+				
+				for each(var item:Object3D in _traceTiles) {
+					scene.removeChild(item);
+				}
+				
+				_traceTiles.length = 0;
+			}
+		}
+		
+		private function traceRayPoints():void 
+		{
+			/*
+			for (var i:int = 0; i < terrainLOD.tracedTiles.length; i++) {
+						var tile:Object3D = tileTrace.clone();
+						_traceTiles.push(tile);
+						var pos:Vector3D = terrainLOD.localToGlobal( new Vector3D(terrainLOD.tracedTiles[i].x, terrainLOD.tracedTiles[i].y, terrainLOD.tracedTiles[i].z) );
+						tile.x = pos.x;
+						tile.y = pos.y;
+						tile.z = pos.z;
+						//uploadResources(tile.getResources());
+						scene.addChild(tile);
+					}
+					*/
+		}
+		
+		private function traceTiles():void {
 			
 		}
 		
@@ -135,7 +249,7 @@ package examples
 	
 	}
 		
-		private var waterLevel:Number = -20000;
+		private var waterLevel:Number =  -20000;
 		public var reflectClipOffset:Number = 0;
 				
 		private function onContext3DCreated(e:Event):void			
@@ -158,6 +272,9 @@ package examples
 			addChild(camera.diagram);
 			camera.view.hideLogo();			
 			scene.addChild(camera);
+			addChild(crosshair);
+			
+			uploadResources( tileTrace.getResources() );
 			
 			// Controller
 			controller = new SimpleObjectController(stage, camera, settings.cameraSpeed, settings.cameraSpeedMultiplier);
@@ -182,8 +299,9 @@ package examples
 			leftres.upload(stage3D.context3D);
 			rightres.upload(stage3D.context3D);
 			frontres.upload(stage3D.context3D);
-			backres.upload(stage3D.context3D);				
-			sb = new SkyBox(camera.farClipping*10,left,right,front,back,bottom,top,0.005);
+			backres.upload(stage3D.context3D);		
+			var fogMat:FillMaterial = new FillMaterial(settings.viewBackgroundColor);
+			sb = new SkyBox(camera.farClipping*10,fogMat,fogMat,fogMat,fogMat, fogMat,fogMat,0.005);  //left,right,front,back,bottom,top
 			sb.geometry.upload(stage3D.context3D);
 			scene.addChild(sb);
 			
@@ -231,18 +349,19 @@ package examples
 			
 			// TerrainLOD
 			terrainLOD = new TerrainLOD();
+			//terrainLOD.debug = true;
 			terrainLOD.detail = START_LOD;
 			terrainLOD.waterLevel = waterLevel;
 			
 			standardMaterial = new StandardTerrainMaterial2(groundTextureResource , new BitmapTextureResource( _normalMapData), null, null  );
-			
+			standardMaterial.uvMultiplier2 = 1 / 1;
 			//throw new Error([standardMaterial.opaquePass, standardMaterial.alphaThreshold, standardMaterial.transparentPass]);
 			//standardMaterial.transparentPass = false;
 			standardMaterial.normalMapSpace = NormalMapSpace.OBJECT;
 			standardMaterial.specularPower = 0;
 			standardMaterial.glossiness = 0;
-			standardMaterial.mistMap = new BitmapTextureResource(new EDGE().bitmapData);
-			StandardTerrainMaterial2.fogMode = 1;
+			//standardMaterial.mistMap = new BitmapTextureResource(new EDGE().bitmapData);
+			StandardTerrainMaterial2.fogMode = 0;
 			StandardTerrainMaterial2.fogFar =  256 * 800;
 			StandardTerrainMaterial2.fogNear = 256 * 32;
 			StandardTerrainMaterial2.fogColor = settings.viewBackgroundColor;
@@ -252,11 +371,11 @@ package examples
 			standardMaterial.pageSize = _loadedPage.heightMap.RowWidth - 1;
 		
 
-			terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial );  //new FillMaterial(0xFF0000, 1)
+			terrainLOD.loadSinglePage(stage3D.context3D, _loadedPage, standardMaterial);  //new FillMaterial(0xFF0000, 1)
 			var hWidth:Number = terrainLOD.boundBox.maxX * .5;
 			terrainLOD.x -= hWidth;
 			terrainLOD.y += hWidth;
-		
+
 		uploadResources(terrainLOD.getResources());
 			scene.addChild(terrainLOD);
 			//	hideFromReflection.push(terrainLOD);
@@ -267,6 +386,7 @@ package examples
 		if (camera.z < waterLevel) camera.z = waterLevel;
 		camera.z += 100;	
 		controller.updateObjectTransform();
+		
 		
 		
 			
@@ -290,14 +410,16 @@ package examples
 			//*/
 		//	scene.removeChild(terrainLOD);
 			// Uncomment and see how this affects rendered reflection
-			/*
-			 var obstacle:Box = new Box(100,100,100,1,1,1,false,new FillMaterial(0x00FF0F));
-			obstacle.y = 0;
-			obstacle.z =waterLevel+400;
-			obstacle.x = 0;
+			///*
+			 obstacle = new Box(400,400,400,1,1,1,false, obstacleMat = new FillMaterial(0xFF000F, .5));
+			obstacle.x = terrainLOD.x + terrainLOD.boundBox.minX; 
+			obstacle.y = terrainLOD.y + terrainLOD.boundBox.minY;
+			obstacle.z = waterLevel;
+			
 			uploadResources(obstacle.getResources());		
 			scene.addChild(obstacle);
-			*/
+			
+			//*/
 			
 			// GUI
 
@@ -322,7 +444,6 @@ package examples
 		private var waterMaterial:WaterMaterial;
 		private var plane:Plane;
 		private var teapot:Mesh;
-		private var box:Box;
 		private var underwaterPlane:Plane;
 		private var teapotContainer:Object3D = new Object3D();
 		
@@ -340,6 +461,9 @@ package examples
 		private function think(e:Event):void
 		{
 			var curTime:int = getTimer();
+			
+			
+			//optionsWindow.title = String(new Vector3D(camera.x, camera.y, camera.z));
 			
 			camera.startTimer();		
 			controller.update();
@@ -381,6 +505,7 @@ package examples
 			standardMaterial.waterLevel  = waterLevel;
 			terrainLOD.waterLevel = waterLevel;
 			
+
 			camera.render(stage3D);
 			
 				_lastTime = curTime;
@@ -427,7 +552,7 @@ package examples
 		private var  view:XML =
 			<comps>			
 				<!-- Console -->
-				<Window id="options" title="Options" x="695" y="5" width="400" height="320" draggable="true" hasMinimizeButton="true">
+				<Window id="options" title="Options (TAB-toggle debugview, F-cast ray test)" x="695" y="5" width="400" height="320" draggable="true" hasMinimizeButton="true">
 					<VBox left="15" right="15" top="50" bottom="15" spacing="15">
 						<HBox bottom="5" left="5" right="5">
 							<Label text="Water tint color RGB:" />
@@ -466,7 +591,7 @@ package examples
 						<HBox bottom="5" left="5" right="5" alignment="middle">
 							<Label text="Water Level / Terrain LOD" />
 							<HSlider id="waterLevel" value={_baseWaterLevel} minimum="-20000" maximum="0" event="change:onWaterLevelChange"/>
-							<HSlider id="terrainLOD" value={START_LOD} minimum="1" maximum="30" event="change:onTerrainLODChange"/>
+							<HSlider id="terrainLOD" value={START_LOD} minimum={START_LOD} maximum="30" event="change:onTerrainLODChange"/>
 						</HBox>
 						
 						<PushButton label="Enter full screen" event="click:onFSButtonClicked"/>
@@ -486,6 +611,10 @@ package examples
 		private var _loadedPage:QuadTreePage;
 		private var standardMaterial:StandardTerrainMaterial2;
 		private var terrainLOD:TerrainLOD;
+		private var obstacle:Box;
+		private var obstacleMat:FillMaterial;
+		private var tileTrace:Box;
+		private var _traceTiles:Vector.<Object3D> = new Vector.<Object3D>();
 
 
 		
@@ -571,6 +700,8 @@ package examples
 		}
 	}
 }
+import flash.display.Sprite;
+import flash.filters.DropShadowFilter;
 
 class TemplateSettings {
 	public var cameraSpeedMultiplier:Number = 3;
@@ -579,3 +710,23 @@ class TemplateSettings {
 	public var viewBackgroundColor:uint;
 	
 }
+
+class CrossHair extends Sprite {
+    public function CrossHair() {
+        graphics.lineStyle(1, 0xDDEE44, 1);
+        graphics.moveTo(0, -2);
+        graphics.lineTo(0, -6);
+        
+        graphics.moveTo(0, 2);
+        graphics.lineTo(0, 6);
+        
+        graphics.moveTo(2, 0);
+        graphics.lineTo(6, 0);
+        
+        graphics.moveTo(-2, 0);
+        graphics.lineTo( -6, 0);
+        
+        filters = [new DropShadowFilter(1,45,0,1,0,0,1,1,false,false, false)];
+    }
+}
+    
