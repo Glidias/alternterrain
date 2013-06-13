@@ -1072,14 +1072,34 @@ package alternterrain.objects
 			}
 			
 			
-			// TODO: collects all geometry within a bounding sphere radius!
-			public function setupCollisionGeometry(sphere:Vector3D, vertices:Vector.<Number>, indices:Vector.<int>, vc:int=0, ic:int=0):void {
-				
-			}
-			
 			override alternativa3d function collectGeometry(collider:EllipsoidCollider, excludedObjects:Dictionary):void {
-			
+				throw new Error("Not supported! Use setupCollisionGeometry() approach instead!");
 			}
+			
+			public var numCollisionTriangles:int = 0;
+			
+	
+			
+			
+			// TODO: collects all dynamic geometry on-the-fly within a bounding sphere radius! Sphere is assumed to be in local coordinate space
+			public function setupCollisionGeometry(sphere:Vector3D, vertices:Vector.<Number>, indices:Vector.<uint>, vi:int = 0, ii:int = 0):void {
+				numCollisionTriangles = 0;
+
+				if (tree != null && boundIntersectSphere(sphere, tree.xorg, -tree.xorg - ((1 << tree.Level) << 1), tree.Square.MinY,  tree.zorg, tree.zorg + ((1 << tree.Level) << 1), tree.Square.MaxY )) {
+						_currentPage = tree;
+						collectTrisForTree2D(tree, sphere, vertices, indices, vi, ii);			
+					}
+					
+					if ( gridPagesVector != null) {
+						// TODO: for multiple pages case
+					}
+			}
+			
+			private function boundIntersectSphere(sphere:Vector3D, minX:Number, minY:Number, minZ:Number, maxX:Number, maxY:Number, maxZ:Number):Boolean {
+				return sphere.x + sphere.w > minX && sphere.x - sphere.w < maxX && sphere.y + sphere.w > minY && sphere.y - sphere.w < maxY && sphere.z + sphere.w > minZ && sphere.z - sphere.w < maxZ;
+			}
+			
+		
 			
 			override protected function clonePropertiesFrom(source:Object3D):void {
 				super.clonePropertiesFrom(source);
@@ -1087,9 +1107,7 @@ package alternterrain.objects
 
 			}
 			
-			public function boundIntersectRay(origin:Vector3D, direction:Vector3D, minX:Number, minY:Number, minZ:Number, maxX:Number, maxY:Number, maxZ:Number):Boolean {
-				
-				// TODO: consider water
+			private function boundIntersectRay(origin:Vector3D, direction:Vector3D, minX:Number, minY:Number, minZ:Number, maxX:Number, maxY:Number, maxZ:Number):Boolean {
 				
 				var temp:Number = minY;
 				minY = -maxY;
@@ -1250,8 +1268,33 @@ package alternterrain.objects
 				return result;
 			}
 			
+			// Public Raycasting methods (origin,  direction (normalized vector with positive w value to indicate specific range or w value of 0 or less for infinite range)
+			
+			// Both methods performs per-polygon accruate raycasting on terrain at highest level of detail!
+			
+			// If the range of the ray is short, this approach is often better, immediately calculating DDA from current position since worse-case scenerio would not happen
+			public function intersectRayDDA(origin:Vector3D, direction:Vector3D):RayIntersectionData {
+				if ( (tree == null && gridPagesVector == null) || (boundBox != null && !boundBox.intersectRay(origin, direction)) ) return null;
+				var data:RayIntersectionData = null;
+			
+					var minTime:Number = 1e22;
+					rayData.time = 1e22;
+					_boundRayTime = 0;
+					
+					if (tree != null && boundIntersectRay(origin, direction, tree.xorg, tree.zorg, tree.Square.MinY, tree.xorg + ((1 << tree.Level) << 1), tree.zorg + ((1 << tree.Level) << 1), tree.Square.MaxY )) {
+						_currentPage = tree;
+			
+						if (calculateDDAIntersect(rayData, tree.heightMap, tree, origin, direction)) return rayData;
+					}
+					
+					if ( gridPagesVector != null) {
+						// TODO: perform DDA for grid of pages!
+					}
+				
+				return null;
+			}
 		
-			// Performs per-polygon accruate raycasting on terrain at highest level of detail! (Could later provide support for LOD-based raycasting as well)
+			// Performs raycasting through the quad tree bounds first and into each chunk for DDA (Could later provide support for LOD-based raycasting as well)
 			override public function intersectRay(origin:Vector3D, direction:Vector3D):RayIntersectionData {
 					if ( (tree == null && gridPagesVector == null) || (boundBox != null && !boundBox.intersectRay(origin, direction)) ) return null;
 					var data:RayIntersectionData = null;
@@ -1284,6 +1327,7 @@ package alternterrain.objects
 					
 					return result;
 				}
+				
 
 				
 				
@@ -1299,9 +1343,12 @@ package alternterrain.objects
 					var dxi:int; // direction of the x-intersection
 					var dyi:int; // direction of the y-intersection
 					var t:Number;
-					const P_ACROSS:int = PATCHES_ACROSS;
+					
+					var xorg:Number = _currentPage.xorg - hm.XOrigin;
+					var zorg:Number = _currentPage.zorg - hm.ZOrigin;
 	
 					var fullC:int = (1 << cd.Level) << 1;
+					var P_ACROSS:int = fullC >> tileShift;
 					
 					// If point isn't inside chunk, find starting intersection point of ray against bound of QuadChunkCornerData square
 					var px:Number = origin.x;
@@ -1323,22 +1370,22 @@ package alternterrain.objects
 							
 							//result.time = 0;
 				
-							xi = int(px - _currentPage.xorg) >> tileShift;	
-							yi = int(py - _currentPage.zorg) >> tileShift;
+							xi = int(px - xorg) >> tileShift;	
+							yi = int(py - zorg) >> tileShift;
 							//if (dx < 0) xi -= 1;
 							//if (dy < 0 ) yi -= 1; 
 						}
 						else throw new Error("Should always have a positive intersection t:"+t)
 					}
 					else {
-						xi = int(px - _currentPage.xorg) >> tileShift;	
-						yi = int(py - _currentPage.zorg) >> tileShift;	
+						xi = int(px - xorg) >> tileShift;	
+						yi = int(py - zorg) >> tileShift;	
 					}
 					
 					// with starting point, check if there's a hit, otherwise continue with DDA process!
 					
-					var minxi:int = (cd.xorg-_currentPage.xorg) >> tileShift;
-					var minyi:int = (cd.zorg-_currentPage.zorg) >> tileShift;
+					var minxi:int = (cd.xorg-xorg) >> tileShift;
+					var minyi:int = (cd.zorg-zorg) >> tileShift;
 					var maxxi:int = minxi +  P_ACROSS ;
 					var maxyi:int = minyi + P_ACROSS ;
 
@@ -1512,12 +1559,12 @@ package alternterrain.objects
 				
 				private function checkHitPatch(result:RayIntersectionData, hm:HeightMapInfo, xi:int, yi:int, zVal:Number, origin:Vector3D, direction:Vector3D):Boolean 
 				{
-
-				
-				
 					// highestPoint bound early reject
 					var highestPoint:Number = hm.Data[xi + yi * hm.RowWidth]; // nw
 				
+					var cxorg:Number = _currentPage.xorg;
+					var czorg:Number = _currentPage.zorg;
+					
 					var hp:Number;
 					_patchHeights[2] = highestPoint;   // 0*3+2
 					hp =   hm.Data[(xi + 1) + (yi) * hm.RowWidth];  // ne
@@ -1548,36 +1595,36 @@ package alternterrain.objects
 					var cz:Number;
 				
 					
-					ax = (_patchHeights[whichFan[0] * 3] + xi) *tileSize - _currentPage.xorg;
-					ay = (_patchHeights[whichFan[0] * 3 + 1] + yi) * tileSize - _currentPage.zorg; 
+					ax = (_patchHeights[whichFan[0] * 3] + xi) *tileSize + cxorg;
+					ay = (_patchHeights[whichFan[0] * 3 + 1] + yi) * tileSize + czorg; 
 					ay *= -1;
 					az = _patchHeights[whichFan[0] * 3 + 2];
 					
 					 
-					bx=  (_patchHeights[whichFan[1] * 3] + xi) * tileSize - _currentPage.xorg; 
-					by = (_patchHeights[whichFan[1] * 3 + 1] + yi) * tileSize- _currentPage.zorg;  
+					bx=  (_patchHeights[whichFan[1] * 3] + xi) * tileSize+ cxorg; 
+					by = (_patchHeights[whichFan[1] * 3 + 1] + yi) * tileSize+ czorg;  
 					by *= -1;
 					bz=_patchHeights[whichFan[1] * 3 + 2];
 					   
-					cx= (_patchHeights[whichFan[2] * 3] + xi) *tileSize - _currentPage.xorg;
-					cy =	(_patchHeights[whichFan[2] * 3 + 1] + yi) * tileSize- _currentPage.zorg;  
+					cx= (_patchHeights[whichFan[2] * 3] + xi) *tileSize + cxorg;
+					cy =	(_patchHeights[whichFan[2] * 3 + 1] + yi) * tileSize+ czorg;  
 					cy *= -1;
 					cz = _patchHeights[whichFan[2] * 3 + 2];
 					
 					if (intersectRayTri(result, origin.x, origin.y, origin.z, direction.x, direction.y, direction.z, ax, ay, az, bx, by, bz, cx, cy, cz) ) return true;
 					
-					ax = (_patchHeights[whichFan[3] * 3] + xi) *tileSize - _currentPage.xorg;
-					ay = (_patchHeights[whichFan[3] * 3 + 1] + yi) * tileSize - _currentPage.zorg; 
+					ax = (_patchHeights[whichFan[3] * 3] + xi) *tileSize + cxorg;
+					ay = (_patchHeights[whichFan[3] * 3 + 1] + yi) * tileSize + czorg; 
 					ay *= -1;
 					az= _patchHeights[whichFan[3] * 3 + 2];
 					 
-					bx=  (_patchHeights[whichFan[4] * 3] + xi) * tileSize - _currentPage.xorg;
-					by = (_patchHeights[whichFan[4] * 3 + 1] + yi) * tileSize- _currentPage.zorg; 
+					bx=  (_patchHeights[whichFan[4] * 3] + xi) * tileSize + cxorg;
+					by = (_patchHeights[whichFan[4] * 3 + 1] + yi) * tileSize+ czorg; 
 					by *= -1;
 					bz=_patchHeights[whichFan[4] * 3 + 2];
 					   
-					cx= (_patchHeights[whichFan[5] * 3] + xi) *tileSize - _currentPage.xorg;
-					cy =	(_patchHeights[whichFan[5] * 3 + 1] + yi) * tileSize- _currentPage.zorg;  
+					cx= (_patchHeights[whichFan[5] * 3] + xi) *tileSize + cxorg;
+					cy =	(_patchHeights[whichFan[5] * 3 + 1] + yi) * tileSize+ czorg;  
 					cy *= -1;
 					cz = _patchHeights[whichFan[5] * 3 + 2];
 
@@ -1585,6 +1632,185 @@ package alternterrain.objects
 					
 					return false;
 				}
+				
+			private function collectTrisForTree2D(tree:QuadTreePage, sphere:Vector3D, vertices:Vector.<Number>, indices:Vector.<uint>, vi:int, ii:int):void {
+				var hm:HeightMapInfo = tree.heightMap;
+				var xi:int = (sphere.x - sphere.w - tree.xorg -hm.XOrigin ) * tileSizeInv;
+				var yi:int = ( -sphere.y + sphere.y - tree.zorg - hm.ZOrigin) * tileSizeInv;
+				var data:Vector.<int> = hm.Data;
+				var len:int = sphere.w * 2 * tileSizeInv;
+				var xtmax:int = xi + len;
+				var ytmax:int = yi + len;
+					var whichFan:Vector.<int>;
+					var RowWidth:int = hm.RowWidth;
+					var cxorg:Number = _currentPage.xorg;
+					var czorg:Number = _currentPage.zorg;
+					
+					var ax:Number; 
+					var ay:Number; 
+					var az:Number; 
+					
+					var bx:Number; 
+					var by:Number; 
+					var bz:Number;
+					
+					var cx:Number; 
+					var cy:Number; 
+					var cz:Number;
+					
+					var vMult:Number = 1 / 3;
+					
+				for (yi; yi < ytmax; yi++) {
+					for (xi; xi < xtmax; xi++) {
+
+					_patchHeights[2] = data[xi + yi * RowWidth];   // nw
+					_patchHeights[5] =  data[(xi + 1) + (yi) * RowWidth];  // ne
+					_patchHeights[8] =  data[xi + (yi+1) * RowWidth]; //sw
+					_patchHeights[11] =  data[(xi + 1) + (yi + 1) * RowWidth];  // se
+					
+					whichFan = (xi & 1) != (yi & 1) ? TRI_ORDER_TRUE : TRI_ORDER_FALSE;
+					
+					ax = (_patchHeights[whichFan[0] * 3] + xi) *tileSize + cxorg;
+					ay = (_patchHeights[whichFan[0] * 3 + 1] + yi) * tileSize + czorg; 
+					ay *= -1;
+					az = _patchHeights[whichFan[0] * 3 + 2];
+					
+					 
+					bx=  (_patchHeights[whichFan[1] * 3] + xi) * tileSize+ cxorg; 
+					by = (_patchHeights[whichFan[1] * 3 + 1] + yi) * tileSize+ czorg;  
+					by *= -1;
+					bz=_patchHeights[whichFan[1] * 3 + 2];
+					   
+					cx= (_patchHeights[whichFan[2] * 3] + xi) *tileSize + cxorg;
+					cy =	(_patchHeights[whichFan[2] * 3 + 1] + yi) * tileSize+ czorg;  
+					cy *= -1;
+					cz = _patchHeights[whichFan[2] * 3 + 2];
+					
+					indices[ii++] = vi * vMult;
+					vertices[vi++] = ax;
+					vertices[vi++] = ay;
+					vertices[vi++] = az;
+					
+					indices[ii++] = vi * vMult;
+					vertices[vi++] = bx;
+					vertices[vi++] = by;
+					vertices[vi++] = bz;
+					
+					indices[ii++] = vi * vMult;
+					vertices[vi++] = cx;
+					vertices[vi++] = cy;
+					vertices[vi++] = cz;
+						
+					numCollisionTriangles++;
+					
+					
+					ax = (_patchHeights[whichFan[3] * 3] + xi) *tileSize + cxorg;
+					ay = (_patchHeights[whichFan[3] * 3 + 1] + yi) * tileSize + czorg; 
+					ay *= -1;
+					az= _patchHeights[whichFan[3] * 3 + 2];
+					 
+					bx=  (_patchHeights[whichFan[4] * 3] + xi) * tileSize + cxorg;
+					by = (_patchHeights[whichFan[4] * 3 + 1] + yi) * tileSize+ czorg; 
+					by *= -1;
+					bz=_patchHeights[whichFan[4] * 3 + 2];
+					   
+					cx= (_patchHeights[whichFan[5] * 3] + xi) *tileSize + cxorg;
+					cy =	(_patchHeights[whichFan[5] * 3 + 1] + yi) * tileSize+ czorg;  
+					cy *= -1;
+					cz = _patchHeights[whichFan[5] * 3 + 2];
+					
+					indices[ii++] = vi * vMult;
+					vertices[vi++] = ax;
+					vertices[vi++] = ay;
+					vertices[vi++] = az;
+					
+					indices[ii++] = vi * vMult;
+					vertices[vi++] = bx;
+					vertices[vi++] = by;
+					vertices[vi++] = bz;
+					
+					indices[ii++] = vi * vMult;
+					vertices[vi++] = cx;
+					vertices[vi++] = cy;
+					vertices[vi++] = cz;
+					
+					numCollisionTriangles++;
+						
+					}
+				}
+			}
+			
+			
+			/*  // This approach checks bounds recursively by goging down quad-tree. Imo, not necessary and overkill unless perhaps if using airborne fast-flying objects.
+			private function collectTrisForTree3D(tree:QuadTreePage, sphere:Vector3D, vertices:Vector.<Number>, indices:Vector.<uint>, vi:int, ii:int):void {
+			
+			var sq:QuadSquareChunk;
+			
+			const stackStart:int =  QuadChunkCornerData.BI;
+
+			
+			var cd:QuadChunkCornerData = tree;
+			var buffer:Vector.<QuadChunkCornerData> =  QD_STACK;
+			sq = cd.Square;
+			var childList:Vector.<QuadSquareChunk> = sq.Child;
+			var child:QuadSquareChunk;
+			var half:int = 1 << cd.Level;
+			var full:int = half << 1;
+			var newCD:QuadChunkCornerData;
+			
+			
+			
+				
+			var hm:HeightMapInfo = tree.heightMap;
+			
+			var bi:int = 1;
+		
+			
+				
+			while (bi > 0) {
+				cd = buffer[--bi];
+	
+				sq = cd.Square;
+				childList = sq.Child;
+				half =  1 << cd.Level;
+				full = half << 1;
+				
+				if (childList[0] == null) {
+				//	vertices[vi++] = tree.xorg
+				}
+				
+				
+				child = childList[0];
+				if ( boundIntersectSphere(sphere,  cd.xorg + half, -cd.zorg - half, child.MinY, cd.xorg + full, -cd.zorg, child.MaxY)) {	
+					
+					sq.SetupCornerData( newCD = QuadChunkCornerData.create(), cd, 0);
+					buffer[bi++] = newCD;
+				}
+				child = childList[1];
+					if (boundIntersectSphere(sphere, cd.xorg, -cd.zorg - half , child.MinY, cd.xorg + half, -cd.zorg , child.MaxY) ) {
+					sq.SetupCornerData( newCD = QuadChunkCornerData.create(), cd, 1);
+					buffer[bi++] = newCD;
+				}
+				child = childList[2];
+				if (boundIntersectSphere(sphere, cd.xorg, -cd.zorg - full, child.MinY, cd.xorg + half, -cd.zorg - half , child.MaxY)) {
+						
+					sq.SetupCornerData( newCD = QuadChunkCornerData.create(), cd, 2);
+					buffer[bi++] = newCD;
+				}
+				child = childList[3];
+				if (boundIntersectSphere(sphere, cd.xorg + half, -cd.zorg -+ full, child.MinY, cd.xorg + full, -cd.zorg - half , child.MaxY)) {
+					sq.SetupCornerData( newCD = QuadChunkCornerData.create(), cd, 3);
+					buffer[bi++] = newCD;
+				}
+			}
+			
+
+		
+			QuadChunkCornerData.BI = stackStart;
+
+			
+		}
+		*/
 				
 				
 				

@@ -173,7 +173,7 @@ package examples
 				
 				//if (childDirection.x < 0 || childDirection.y > 0) return;  
 				//childOrigin.y =  childOrigin.y * -1;
-				//childDirection.w = Number.MAX_VALUE;
+				//childDirection.w = 800; //Number.MAX_VALUE;
 				
 				
 				var waterData:RayIntersectionData = terrainLOD.intersectRayWater(childOrigin, childDirection);
