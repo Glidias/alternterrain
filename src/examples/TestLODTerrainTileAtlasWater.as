@@ -106,7 +106,7 @@ class MyTemplate extends Template {
 		var loadAliases:LoadAliases = new LoadAliases();
 		settings.cameraSpeed = 600;
 		settings.cameraSpeedMultiplier = 16;
-		settings.viewBackgroundColor = 0x3BB9FF;
+		settings.viewBackgroundColor = 0x777777;
 
 		
 		_normalMapData = new NORMAL_MAP().bitmapData;
@@ -276,12 +276,13 @@ class MyTemplate extends Template {
 		//ambientLight.x = spotlight.x;
 		///ambientLight.y = spotlight.y;
 		//ambientLight.z = spotlight.z;
-		ambientLight.intensity = .4;
+		ambientLight.intensity = .2;
 		
 		directionalLight.x = 0; spotlight.x;
 		directionalLight.y = 0; spotlight.y;
 		//directionalLight.z = spotlight.z;
 		directionalLight.z = terrainLOD.boundBox.maxZ + 1000;
+		directionalLight.intensity = .3;
 		directionalLight.lookAt(spotlight.x, spotlight.y, 0);
 		
 		directionalLight.distance = 900000;

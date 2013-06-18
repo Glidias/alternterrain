@@ -534,17 +534,17 @@ package terraingen.island  {
 
       if (render3dTimer.running) render3dTimer.stop();
 
-	  /*
+	  ///*
       if (mode != 'slopes' && mode != 'moisture') {
         renderRoads(graphics, displayColors);
       }
       if (mode != 'polygons') {
-        renderEdges(graphics, displayColors);
+     //   renderEdges(graphics, displayColors);
       }
       if (mode != 'slopes' && mode != 'moisture') {
-        renderBridges(graphics, displayColors);
+       // renderBridges(graphics, displayColors);
       }
-	  */
+	//  */
 	  
     }
 
