@@ -82,18 +82,20 @@ package examples
 			filterCircles.terrainIterateCircles(32);
 			
 			filterFault.setupHeights(data, vAcross, vAcross);
-			filterFault.maxDisp = 120;
-			filterFault.minDisp = -120;
+			filterFault.maxDisp = 420;
+			filterFault.minDisp = -420;
 			filterFault.terrainWaveSize = 4;
 			filterFault.terrainRandomSeed = Math.random() * 99999;
 			filterFault.terrainFunction = TerrainProcesses.SIN;
-			//filterFault.terrainIterateFault(33);
+		//	filterFault.terrainIterateFault(33);
 			
 			filterNoise.setupHeights(data, vAcross, vAcross);
 			filterNoise.maxDisp = 600;
 			filterNoise.minDisp = -600;
 			filterNoise.terrainRandomSeed = Math.random() * 99999;
-			filterNoise.terrainApplyNoise(20, 4, 3.4, .85);
+		//	filterNoise.terrainApplyNoise(20, 4, 3.4, .2);
+			
+			filterNoise.terrainApplyNoise(20, 4, 2.4, .4);
 			
 			//filterNoise.terrainApplyNoise(4, 512, 128);
 			
@@ -110,7 +112,7 @@ package examples
 			
 			filterSmooth.setupHeights(data, vAcross, vAcross);
 			filterSmooth.terrainRandomSeed = Math.random() * 99999;
-			filterSmooth.terrainSmooth(.15);
+		//	filterSmooth.terrainSmooth(.15);
 			
 			
 			var mesh:Mesh = new Mesh();
