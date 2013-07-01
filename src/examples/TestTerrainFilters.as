@@ -79,7 +79,7 @@ package examples
 			filterCircles.maxDisp = 900;
 			filterCircles.minDisp = -900;
 			filterCircles.terrainRandomSeed = Math.random() * 99999;
-			filterCircles.terrainIterateCircles(32);
+		//	filterCircles.terrainIterateCircles(32);
 			
 			filterFault.setupHeights(data, vAcross, vAcross);
 			filterFault.maxDisp = 420;
@@ -95,8 +95,12 @@ package examples
 			filterNoise.terrainRandomSeed = Math.random() * 99999;
 		//	filterNoise.terrainApplyNoise(20, 4, 3.4, .2);
 			
-			filterNoise.terrainApplyNoise(20, 4, 2.4, .4);
+		//	filterNoise.terrainApplyNoise(20, 4, 2.4, .4);
 			
+				filterNoise.maxDisp = 3200;
+			filterNoise.minDisp = -3200;
+			filterNoise.terrainRandomSeed = Math.random() * 99999;
+			filterNoise.terrainApplyNoise(40, 4, 2.4, .4);
 			//filterNoise.terrainApplyNoise(4, 512, 128);
 			
 			filterPerlinNoise.setupHeights(data, vAcross, vAcross);
@@ -117,7 +121,7 @@ package examples
 			
 			var mesh:Mesh = new Mesh();
 			if (tilesAcross <= 128) {
-				var geo:Geometry = TerrainGeomTools.createLODTerrainChunkForMesh(tilesAcross, 256).geometry;
+				var geo:Geometry = TerrainGeomTools.createLODTerrainChunkForMesh(tilesAcross, 512).geometry;
 				TerrainGeomTools.modifyGeometryByHeightData(geo, data, vAcross);
 				
 				mesh.geometry = geo;
@@ -128,7 +132,7 @@ package examples
 				var testMat:StandardMaterial =  new StandardMaterial(new BitmapTextureResource(new BitmapData(4, 4, false, 0xBBBBBB)), new BitmapTextureResource(new BitmapData(4, 4, false, 0x0000FF) ) );
 				testMat.glossiness = 0;
 				testMat.specularPower = 0;
-				
+			//	mesh.scaleX = mesh.scaleY = 2;
 				mesh.addSurface(testMat, 0, mesh.geometry.numTriangles );
 			}
 			//else {
@@ -148,7 +152,7 @@ package examples
 			
 			scene.addChild(mesh);
 			//var wireframe:WireFrame = WireFrame.createEdges(mesh, 0xFFFFFF, 1, 1);
-			//scene.addChild(wireframe);
+		//	scene.addChild(wireframe);
 		}
 		
 		
