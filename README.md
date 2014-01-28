@@ -1,3 +1,5 @@
+NOTE: This repository is curently outdated/unmaintained. For the latest WIP with latest fixes/what-not....consider checking http://github.com/Glidias/Asharena  
+
 alternterrain
 =============
 
