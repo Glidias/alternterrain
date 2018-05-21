@@ -1967,7 +1967,7 @@ package alternterrain.objects
 				}
 
 				
-				private function drawLeaf(cd:QuadChunkCornerData, s:QuadSquareChunk, camera:Camera3D, lights:Vector.<Light3D>, lightsLength:int, useShadow:Boolean):void {
+					private function drawLeaf(cd:QuadChunkCornerData, s:QuadSquareChunk, camera:Camera3D, lights:Vector.<Light3D>, lightsLength:int, useShadow:Boolean):void {
 					var state:TerrainChunkState;   
 					if (!debug && tilingUVBuffers != null) myGeometry._attributesStreams[VertexAttributes.TEXCOORDS[0]].buffer = tilingUVBuffers[cd.Level-_repeatUVLowestLevel];
 					if (myLODMaterial != null) myLODMaterial.visit(cd, _currentPage, tileShift, currentLookupIndex);
@@ -1975,21 +1975,34 @@ package alternterrain.objects
 					var id:int = cd.Parent != null ? indexSideLookup[((cd.Parent.Square.EnabledFlags & 0xF) | cornerMask[cd.ChildIndex])]  : 0;
 						state = s.state;   
 					if (state == null) {
-						 state =  chunkPool.getAvailable() || getNewChunkState(camera.context3D);
-						 if (state.square != null)  state.square.state = null;  // this means that the square is from pool!
-						 state.square = s;
+						//pool_retrieved += chunkPool.head != null ? 1 : 0;  // tracking
+						//newly_instantiated += chunkPool.head != null ? 0 : 1;  // tracking
+						
+						//newly_instantiated++;
+						 state =  getNewChunkState(camera.context3D); //chunkPool.getAvailable() || 
+						
+						// if (state.square != null)  state.square.state = null;  // this means that the square is from pool!
+						
+						// state.square = s;
 						 s.state = state;
-						state.enabledFlags = s.EnabledFlags;
+						//state.enabledFlags = s.EnabledFlags;
 						sampleHeights(_currentPage.requirements, _currentPage.heightMap, cd);
 						state.vertexBuffer.uploadFromVector(_vertexUpload, 0, NUM_VERTICES);
 					}
+					else {
+					//	cached_retrieved++;
+						//cached_retrieved += chunkPool.head != null ? 1 : 0; // tracking
+						//if (state.parent != chunkPool) throw new Error("SHULD NOT BE!");  
+					}
+					
 					/*
 					else if ( state.enabledFlags != s.EnabledFlags ) {  
 						if (_currentPage.requirements & requireEdgeMask) updateEdges(_currentPage.requirements, cd, state.enabledFlags, s.EnabledFlags);
 						state.enabledFlags = s.EnabledFlags;
 					}
 					*/
-					state.enabledFlags = s.EnabledFlags;
+					
+					//state.enabledFlags = s.EnabledFlags;
 					mySurface.numTriangles = numTrianglesLookup[id]; 
 					//myGeometry._indexBuffer = indexBuffers[0];
 					myGeometry._indexBuffer = indexBuffers[id];
@@ -1998,7 +2011,10 @@ package alternterrain.objects
 					myGeometry._attributesStreams[1].buffer = s.state.vertexBuffer;  
 					mySurface.material.collectDraws( camera, mySurface, myGeometry, lights, lightsLength, useShadow);
 		
-					if (state.parent) state.parent.remove(state);
+					
+					if (state.parent) {
+						state.parent.remove(state);  //  state.parent will always be avialble for cached_retrieved case, since pooling mechanism works by always appending 
+					}
 					activeChunks.append(state);
 					
 					drawnChunks++;
