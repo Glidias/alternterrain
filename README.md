@@ -1,4 +1,4 @@
-NOTE: This repository is curently outdated/unmaintained. For the latest WIP with latest features/fixes/what-not....consider checking http://github.com/Glidias/Asharena  
+NOTE: This repository is curently outdated/unmaintained. For the latest WIP with latest features/fixes/what-not....consider checking http://github.com/Glidias/Asharena  and https://playcanvas.com/project/551968/overview/lod-quad-tree-terrain-engine for a WebGL implementation under Playcanvas.
 
 alternterrain
 =============
